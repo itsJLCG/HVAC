@@ -15,6 +15,7 @@ function AddingInventory() {
   }, []);
   const [show, setShow] = useState(false);
   const [items, setItems] = useState([]);
+  const qrRefs = React.useRef({});
   const [form, setForm] = useState({ name: "", quantity: "", description: "" });
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -102,6 +103,35 @@ function AddingInventory() {
     loadItems();
   }, []);
 
+  const handlePrint = (item) => {
+    try {
+      const container = qrRefs.current[item.id];
+      const svgHtml = container ? container.innerHTML : "";
+      const name = item.name || "Item";
+      const html = `<!doctype html><html><head><title>Print QR</title><meta charset="utf-8" /><style>
+        @page { size: A4 portrait; margin: 20mm; }
+        body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:0;background:#fff;color:#000}
+        .wrap{width:100%;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:10mm 0}
+        .card{width:80vw;max-width:700px;display:flex;flex-direction:column;align-items:center;border:1px solid #eee;padding:28px;border-radius:8px;background:#fff;box-shadow:none}
+        /* make SVG scale to available card width but stay square */
+        .card svg{width:100%;height:auto;max-width:600px;display:block}
+        .name{margin-top:20px;font-size:32px;font-weight:800;text-align:center}
+        @media print { html,body{height:auto;} .card{border:none;padding:0;width:100%;max-width:100%;} }
+      </style></head><body><div class="wrap"><div class="card">${svgHtml}<div class="name">${name}</div></div></div><script>window.onload=function(){setTimeout(()=>{window.print();},200);};</script></body></html>`;
+      const w = window.open("", "_blank", "width=400,height=600");
+      if (!w) {
+        alert("Pop-up blocked. Please allow popups to print the QR code.");
+        return;
+      }
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+    } catch (e) {
+      console.error("print error", e);
+      alert("Failed to open print dialog");
+    }
+  };
+
   return (
     <>
       <Container fluid>
@@ -132,6 +162,7 @@ function AddingInventory() {
                     <tr>
                       <th className="border-0">Image</th>
                       <th className="border-0">QR</th>
+                      <th className="border-0">Actions</th>
                       <th className="border-0">Item</th>
                       <th className="border-0">Quantity</th>
                       <th className="border-0">Description</th>
@@ -140,7 +171,7 @@ function AddingInventory() {
                   <tbody>
                       {items.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="text-center">
+                        <td colSpan={6} className="text-center">
                           No inventory items yet. Click "+ Add Inventory" to create one.
                         </td>
                       </tr>
@@ -154,10 +185,10 @@ function AddingInventory() {
                               "—"
                             )}
                           </td>
-                          <td style={{ width: 80 }}>
+                          <td style={{ width: 120 }}>
                             {it.qr_value ? (
                               typeof QRCode !== "undefined" && QRCode ? (
-                                <div style={{ width: 64, height: 64 }}>
+                                <div ref={(el) => (qrRefs.current[it.id] = el)} style={{ width: 64, height: 64 }}>
                                   <QRCode value={it.qr_value} size={64} />
                                 </div>
                               ) : (
@@ -166,6 +197,11 @@ function AddingInventory() {
                             ) : (
                               "—"
                             )}
+                          </td>
+                          <td style={{ width: 120 }}>
+                            <Button size="sm" variant="secondary" onClick={() => handlePrint(it)}>
+                              Print QR
+                            </Button>
                           </td>
                           <td>{it.name}</td>
                           <td>{it.quantity}</td>

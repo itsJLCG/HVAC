@@ -14,7 +14,7 @@ ADMIN SIDE
 - Delete Inventory ✅
 - QR Code Generated After Adding Inventory ✅
 - Notification after Add, Update, Delete ✅
-- QR Code Printable 
+- QR Code Printable ✅
 - Overview Change Content
 - User Profile Change Content
 - List All Borrowed Inventory with Status
