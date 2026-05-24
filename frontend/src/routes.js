@@ -20,6 +20,7 @@ import UserProfile from "views/UserProfile.js";
 import AddingInventory from "views/AddingInventory.js";
 import UpdateInventory from "views/UpdateInventory.js";
 import AllBorrowedInventory from "views/AllBorrowedInventory.js";
+import TestQR from "views/TestQR.js";
 
 const dashboardRoutes = [
   {
@@ -55,6 +56,13 @@ const dashboardRoutes = [
     name: "Borrowed Inventory",
     icon: "nc-icon nc-paper-2",
     component: AllBorrowedInventory,
+    layout: "/admin"
+  },
+  {
+    path: "/test-qr",
+    name: "Test QR",
+    icon: "nc-icon nc-camera-20",
+    component: TestQR,
     layout: "/admin"
   }
 ];

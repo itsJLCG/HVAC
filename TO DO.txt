@@ -15,6 +15,8 @@ ADMIN SIDE
 - QR Code Generated After Adding Inventory ✅
 - Notification after Add, Update, Delete ✅
 - QR Code Printable ✅
+- Test Scan Muna ✅
 - Overview Change Content
 - User Profile Change Content
 - List All Borrowed Inventory with Status
+
