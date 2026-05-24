@@ -32,6 +32,9 @@ import AdminLayout from "./layouts/Admin.js";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
+// Debug: log imports to detect undefined component causing runtime error
+console.log("Router imports:", { BrowserRouter, Route, Switch, Redirect, AdminLayout });
+
 root.render(
   <BrowserRouter>
     <Switch>

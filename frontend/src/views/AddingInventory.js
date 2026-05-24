@@ -1,15 +1,29 @@
 import React, { useState } from "react";
+import QRCode from "react-qr-code";
 import { Card, Container, Row, Col, Button, Table, Alert } from "react-bootstrap";
+import NotificationModal from "components/NotificationModal/NotificationModal";
+
+// Leave empty by default so fetch("/api/...") goes to the CRA proxy (package.json `proxy`).
+// Set `REACT_APP_API_BASE` to a full URL if you need to override in production.
+const API_BASE = process.env.REACT_APP_API_BASE || "";
 
 function AddingInventory() {
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      console.log("AddingInventory: typeof QRCode =", typeof QRCode);
+    }
+  }, []);
   const [show, setShow] = useState(false);
   const [items, setItems] = useState([]);
-  const [form, setForm] = useState({ name: "", sku: "", quantity: "", description: "" });
+  const [form, setForm] = useState({ name: "", quantity: "", description: "" });
+  const [file, setFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const handleShow = () => setShow(true);
   const handleClose = () => {
     setShow(false);
-    setForm({ name: "", sku: "", quantity: "", description: "" });
+    setForm({ name: "", quantity: "", description: "" });
   };
 
   const handleChange = (e) => {
@@ -17,51 +31,71 @@ function AddingInventory() {
     setForm((s) => ({ ...s, [name]: value }));
   };
 
-  const handleAdd = (e) => {
-    e.preventDefault();
-    // send to backend
-    fetch("/api/items", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, quantity: Number(form.quantity || 0) }),
-    })
-      .then((r) => r.json())
-      .then(() => {
-        loadItems();
-        handleClose();
-        notify("success", "Inventory item added");
-      })
-      .catch(() => notify("danger", "Failed to add item"));
+  const handleFileChange = (e) => {
+    const f = e.target.files && e.target.files[0];
+    setFile(f || null);
+    setPreviewUrl(f ? URL.createObjectURL(f) : null);
   };
 
-  const [confirmDelete, setConfirmDelete] = useState(null);
+  
+
+  // Local upload handled by backend: send FormData with `image` field
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    try {
+      setUploading(true);
+      let res;
+        if (file) {
+        const fd = new FormData();
+        fd.append("image", file);
+        fd.append("name", form.name);
+        fd.append("quantity", Number(form.quantity || 0));
+        fd.append("description", form.description);
+        res = await fetch(`${API_BASE}/api/items`, {
+          method: "POST",
+          body: fd,
+        });
+      } else {
+        const payload = { ...form, quantity: Number(form.quantity || 0) };
+        res = await fetch(`${API_BASE}/api/items`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+      if (!res.ok) throw new Error("Failed to add item");
+      const data = await res.json();
+      loadItems();
+      handleClose();
+      setFile(null);
+      setPreviewUrl(null);
+      notify("success", `${data.name} added to the inventory and QR Code Generated Successfully.`);
+    } catch (err) {
+      notify("danger", err.message || "Failed to add item");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Deletion is handled in UpdateInventory page; remove delete logic here
   const [alert, setAlert] = useState({ show: false, variant: "success", message: "" });
+  const [notification, setNotification] = useState({ show: false, title: "", message: "" });
   const notify = (variant, message) => {
+    // show modal-style notification (container) instead of toast
+    setNotification({ show: true, title: "", message });
+    // also keep inline alert as fallback
     setAlert({ show: true, variant, message });
     setTimeout(() => setAlert((a) => ({ ...a, show: false })), 4000);
   };
 
-  const handleDelete = (index) => {
-    const item = items[index];
-    if (!item) return;
-    setConfirmDelete(item);
-  };
-
-  const confirmDeleteNow = () => {
-    if (!confirmDelete) return;
-    fetch(`/api/items/${confirmDelete.id}`, { method: "DELETE" })
-      .then(() => {
-        notify("success", `Deleted ${confirmDelete.name}`);
-        setConfirmDelete(null);
-        loadItems();
-      })
-      .catch(() => notify("danger", `Failed to delete ${confirmDelete.name}`));
-  };
+  // no delete functions here
 
   const loadItems = () => {
-    fetch("/api/items")
+    fetch(`${API_BASE}/api/items`)
       .then((r) => r.json())
-      .then((data) => setItems(data));
+      .then((data) => setItems(data))
+      .catch(() => setItems([]));
   };
 
   React.useEffect(() => {
@@ -96,15 +130,15 @@ function AddingInventory() {
                 <Table className="table-hover table-striped">
                   <thead>
                     <tr>
+                      <th className="border-0">Image</th>
+                      <th className="border-0">QR</th>
                       <th className="border-0">Item</th>
-                      <th className="border-0">SKU</th>
                       <th className="border-0">Quantity</th>
                       <th className="border-0">Description</th>
-                      <th className="border-0">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {items.length === 0 ? (
+                      {items.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="text-center">
                           No inventory items yet. Click "+ Add Inventory" to create one.
@@ -113,15 +147,29 @@ function AddingInventory() {
                     ) : (
                       items.map((it, idx) => (
                         <tr key={idx}>
+                          <td style={{ width: 80 }}>
+                            {it.image_url ? (
+                              <img src={it.image_url} alt={it.name} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 4 }} />
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                          <td style={{ width: 80 }}>
+                            {it.qr_value ? (
+                              typeof QRCode !== "undefined" && QRCode ? (
+                                <div style={{ width: 64, height: 64 }}>
+                                  <QRCode value={it.qr_value} size={64} />
+                                </div>
+                              ) : (
+                                <span>QR unavailable</span>
+                              )
+                            ) : (
+                              "—"
+                            )}
+                          </td>
                           <td>{it.name}</td>
-                          <td>{it.sku}</td>
                           <td>{it.quantity}</td>
                           <td>{it.description}</td>
-                          <td>
-                            <Button size="sm" variant="danger" onClick={() => handleDelete(idx)}>
-                              Delete
-                            </Button>
-                          </td>
                         </tr>
                       ))
                     )}
@@ -132,6 +180,13 @@ function AddingInventory() {
           </Col>
         </Row>
       </Container>
+
+      <NotificationModal
+        show={notification.show}
+        onClose={() => setNotification((n) => ({ ...n, show: false }))}
+        title={"Notification"}
+        message={notification.message}
+      />
 
       {show && (
         <>
@@ -150,8 +205,6 @@ function AddingInventory() {
                       <input className="form-control" name="name" value={form.name} onChange={handleChange} required />
                     </div>
                     <div className="form-group mb-2">
-                      <label>SKU</label>
-                      <input className="form-control" name="sku" value={form.sku} onChange={handleChange} />
                     </div>
                     <div className="form-group mb-2">
                       <label>Quantity</label>
@@ -161,13 +214,19 @@ function AddingInventory() {
                       <label>Description</label>
                       <textarea className="form-control" rows={3} name="description" value={form.description} onChange={handleChange} />
                     </div>
+                    <div className="form-group mb-2">
+                      <label>Image</label>
+                      <input type="file" accept="image/*" className="form-control" onChange={handleFileChange} />
+                      {previewUrl && <img src={previewUrl} alt="preview" style={{ marginTop: 8, width: 120, height: 80, objectFit: "cover" }} />}
+                    </div>
+                      {/* QR preview removed — QR is generated server-side and shown in table after add */}
                   </div>
                   <div className="modal-footer">
                     <button type="button" className="btn btn-secondary" onClick={handleClose}>
                       Cancel
                     </button>
-                    <button type="submit" className="btn btn-primary">
-                      Add Inventory
+                    <button type="submit" className="btn btn-primary" disabled={uploading}>
+                      {uploading ? "Uploading..." : "Add Inventory"}
                     </button>
                   </div>
                 </form>
@@ -176,28 +235,7 @@ function AddingInventory() {
           </div>
         </>
       )}
-      {confirmDelete && (
-        <>
-          <div className="modal-backdrop show" />
-          <div className="modal d-block" tabIndex="-1" role="dialog">
-            <div className="modal-dialog modal-dialog-centered" role="document">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">Confirm Delete</h5>
-                  <button type="button" className="btn-close" aria-label="Close" onClick={() => setConfirmDelete(null)} />
-                </div>
-                <div className="modal-body">
-                  Are you sure you want to delete <b>{confirmDelete.name}</b>?
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setConfirmDelete(null)}>Cancel</button>
-                  <button type="button" className="btn btn-danger" onClick={confirmDeleteNow}>Delete</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      
     </>
   );
 }

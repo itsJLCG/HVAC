@@ -21,16 +21,43 @@ import { useLocation, Route, Switch } from "react-router-dom";
 import AdminNavbar from "components/Navbars/AdminNavbar";
 import Footer from "components/Footer/Footer";
 import Sidebar from "components/Sidebar/Sidebar";
-import FixedPlugin from "components/FixedPlugin/FixedPlugin.js";
+import ErrorBoundary from "components/ErrorBoundary/ErrorBoundary";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import routes from "routes.js";
 
-import sidebarImage from "assets/img/sidebar-3.jpg";
+import sidebarImage from "assets/img/image.png";
 
 function Admin() {
+  // Debug: log component imports to detect undefined exports/imports
+  if (typeof window !== "undefined") {
+    // these logs go to the browser console
+    console.log("Imported layout components:", {
+      AdminNavbarType: typeof AdminNavbar,
+      FooterType: typeof Footer,
+      SidebarType: typeof Sidebar
+    });
+  }
+  React.useEffect(() => {
+    const handler = (e) => {
+      const { variant = "success", message = "" } = e.detail || {};
+      const options = { position: toast.POSITION.TOP_RIGHT, hideProgressBar: true };
+      if (variant === "danger" || variant === "error") {
+        toast.error(message, options);
+      } else if (variant === "info" || variant === "secondary") {
+        toast.info(message, options);
+      } else if (variant === "warning") {
+        toast.warn(message, options);
+      } else {
+        toast.success(message, options);
+      }
+    };
+    window.addEventListener("app-notify", handler);
+    return () => window.removeEventListener("app-notify", handler);
+  }, []);
   const [image, setImage] = React.useState(sidebarImage);
   const [color, setColor] = React.useState("black");
-  const [hasImage, setHasImage] = React.useState(true);
   const location = useLocation();
   const mainPanel = React.useRef(null);
   const getRoutes = (routes) => {
@@ -39,7 +66,10 @@ function Admin() {
         return (
           <Route
             path={prop.layout + prop.path}
-            render={(props) => <prop.component {...props} />}
+            render={(props) => {
+              const Component = prop.component;
+              return Component ? <Component {...props} /> : null;
+            }}
             key={key}
           />
         );
@@ -64,23 +94,19 @@ function Admin() {
   return (
     <>
       <div className="wrapper">
-        <Sidebar color={color} image={hasImage ? image : ""} routes={routes} />
+        <Sidebar color={color} image={image} routes={routes} />
         <div className="main-panel" ref={mainPanel}>
           <AdminNavbar />
           <div className="content">
-            <Switch>{getRoutes(routes)}</Switch>
+            <ErrorBoundary>
+              <Switch>{getRoutes(routes)}</Switch>
+            </ErrorBoundary>
           </div>
           <Footer />
         </div>
       </div>
-      <FixedPlugin
-        hasImage={hasImage}
-        setHasImage={() => setHasImage(!hasImage)}
-        color={color}
-        setColor={(color) => setColor(color)}
-        image={image}
-        setImage={(image) => setImage(image)}
-      />
+      {/* FixedPlugin removed - sidebar image is fixed to assets/img/image.png */}
+      <ToastContainer position="top-right" />
     </>
   );
 }

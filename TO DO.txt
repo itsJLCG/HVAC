@@ -1,0 +1,20 @@
+USER SIDE
+- Landing Page
+- Login 
+- Register
+- Page showing all the Inventory
+- User Profile
+- My Notification showing their borrowed item, status, and deadline
+- Fill Out Borrowing Item handles web cam to scan QR
+
+
+ADMIN SIDE
+- Add Inventory ✅
+- Update Inventory ✅
+- Delete Inventory ✅
+- QR Code Generated After Adding Inventory ✅
+- Notification after Add, Update, Delete ✅
+- QR Code Printable 
+- Overview Change Content
+- User Profile Change Content
+- List All Borrowed Inventory with Status
