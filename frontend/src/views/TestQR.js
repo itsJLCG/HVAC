@@ -15,20 +15,65 @@ function TestQR() {
   const [cameras, setCameras] = useState([]);
   const [selectedCamera, setSelectedCamera] = useState(null);
   const [manualCameraSelection, setManualCameraSelection] = useState(false);
+  const restartingCameraRef = useRef(false);
 
   const pickBestCamera = (cameraList) => {
     if (!cameraList || !cameraList.length) return null;
     const preferred = cameraList.find((camera) => {
-      const label = `${camera.label || ""} ${camera.id || ""}`.toLowerCase();
+      const label = `${camera.label || ""} ${camera.id || camera.deviceId || ""}`.toLowerCase();
       return label.includes("back") || label.includes("rear") || label.includes("environment");
     });
     return preferred || cameraList[0] || null;
   };
 
+  const normalizeCameraId = (camera) => camera && (camera.id || camera.deviceId || null);
+
+  const normalizeCameras = (cameraList) => (cameraList || [])
+    .map((camera) => ({
+      ...camera,
+      id: normalizeCameraId(camera),
+    }))
+    .filter((camera) => camera.id);
+
   const getQrBoxSize = () => {
     const el = document.getElementById(qrcodeRegionId);
     const width = el ? (el.clientWidth || el.offsetWidth || 360) : 360;
     return Math.max(280, Math.min(420, Math.floor(width * 0.85)));
+  };
+
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const getCameraStartMessage = (error) => {
+    const rawMessage = `${error?.name || ""} ${error?.message || error || ""}`.toLowerCase();
+    const errorName = `${error?.name || ""}`.toLowerCase();
+
+    if (!window.isSecureContext && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+      return "Camera access requires HTTPS or localhost.";
+    }
+
+    if (rawMessage.includes("notallowed") || rawMessage.includes("permission")) {
+      return "Camera permission was denied. Allow camera access in the browser and try again.";
+    }
+
+    if (rawMessage.includes("notfound") || rawMessage.includes("overconstrained") || rawMessage.includes("device")) {
+      return "The selected camera is unavailable. Try a different camera or reconnect the webcam.";
+    }
+
+    if (errorName.includes("notreadable")) {
+      return "The camera is already in use or Windows/browser cannot open it. Close other apps using the webcam, then try again.";
+    }
+
+    return "Unable to start camera. Check browser permissions and camera availability.";
+  };
+
+  const startScannerWithCameraArg = async (cameraArg) => {
+    const qrboxSize = getQrBoxSize();
+    await scannerRef.current.start(
+      cameraArg,
+      { fps: 15, qrbox: { width: qrboxSize, height: qrboxSize }, disableFlip: true },
+      onScanSuccess,
+      onScanError
+    );
   };
 
   const stopScanner = useCallback(async () => {
@@ -92,10 +137,11 @@ function TestQR() {
       try {
         cams = await Html5Qrcode.getCameras();
         console.log('available cameras:', cams);
-        setCameras(cams || []);
-        if (cams && cams.length) {
-          const preferredCamera = pickBestCamera(cams);
-          const preferredCameraId = preferredCamera && (preferredCamera.id || preferredCamera.deviceId || preferredCamera.label) || null;
+        const normalizedCams = normalizeCameras(cams);
+        setCameras(normalizedCams);
+        if (normalizedCams.length) {
+          const preferredCamera = pickBestCamera(normalizedCams);
+          const preferredCameraId = normalizeCameraId(preferredCamera);
           cameraIdToUse = manualCameraSelection && selectedCamera ? selectedCamera : preferredCameraId;
           setSelectedCamera(cameraIdToUse);
           setManualCameraSelection(false);
@@ -105,40 +151,77 @@ function TestQR() {
       }
       scannerRef.current = new Html5Qrcode(qrcodeRegionId, { verbose: true });
 
-      const cameraArg = cameraIdToUse
+      const preferredCameraArg = cameraIdToUse
         ? { deviceId: { exact: cameraIdToUse } }
         : { facingMode: { ideal: 'environment' } };
-      const qrboxSize = getQrBoxSize();
 
-      console.log('starting scanner with cameraArg=', cameraArg);
+      console.log('starting scanner with cameraArg=', preferredCameraArg);
 
-      await scannerRef.current.start(
-        cameraArg,
-        { fps: 15, qrbox: { width: qrboxSize, height: qrboxSize }, disableFlip: true },
-        onScanSuccess,
-        onScanError
-      );
+      const fallbackAttempts = manualCameraSelection && cameraIdToUse ? [] : [];
+
+      let lastStartError = null;
+      const attemptArgs = [preferredCameraArg, ...fallbackAttempts];
+
+      for (const cameraArg of attemptArgs) {
+        try {
+          if (!scannerRef.current) {
+            scannerRef.current = new Html5Qrcode(qrcodeRegionId, { verbose: true });
+          }
+          console.log('starting scanner with cameraArg=', cameraArg);
+          await startScannerWithCameraArg(cameraArg);
+          lastStartError = null;
+          break;
+        } catch (attemptError) {
+          lastStartError = attemptError;
+          console.debug('camera start attempt failed', cameraArg, attemptError);
+          scannerRef.current = null;
+
+          const isNotReadable = `${attemptError?.name || ""}`.toLowerCase().includes("notreadable");
+          if (isNotReadable && cameraArg === preferredCameraArg) {
+            setScanStatus("Camera is busy. Retrying...");
+            await sleep(750);
+            scannerRef.current = new Html5Qrcode(qrcodeRegionId, { verbose: true });
+            try {
+              await startScannerWithCameraArg(cameraArg);
+              lastStartError = null;
+              break;
+            } catch (retryError) {
+              lastStartError = retryError;
+              console.debug('camera retry failed', cameraArg, retryError);
+              scannerRef.current = null;
+            }
+          }
+        }
+      }
+
+      if (lastStartError) {
+        throw lastStartError;
+      }
+
       setRunning(true);
       setScanStatus("Camera live - scanning continuously");
       console.log('scanner started');
     } catch (e) {
       console.error("Start scanner failed", e);
       setScanStatus("Camera failed to start");
-      alert("Unable to start camera. Ensure the site is served over HTTPS and camera permission is allowed.");
+      alert(getCameraStartMessage(e));
     }
   };
 
   // If user switches camera while scanner is running, restart with the new device
   useEffect(() => {
-    if (!running) return;
+    if (!running || restartingCameraRef.current) return;
     // restart scanner on camera change
     (async () => {
       try {
+        restartingCameraRef.current = true;
         setScanStatus("Switching camera...");
         await stopScanner();
         await startScanner();
       } catch (err) {
         console.debug('restart scanner on camera change failed', err);
+      } finally {
+        restartingCameraRef.current = false;
       }
     })();
   }, [selectedCamera]);
@@ -176,8 +259,8 @@ function TestQR() {
                     setManualCameraSelection(true);
                   }}>
                     {cameras.map((c) => (
-                      <option key={c.id || c.deviceId || c.label} value={c.id || c.deviceId || c.label}>
-                        {c.label || c.id || c.deviceId}
+                      <option key={c.id} value={c.id}>
+                        {c.label || c.id}
                       </option>
                     ))}
                   </select>
@@ -188,12 +271,9 @@ function TestQR() {
                     variant="outline-primary"
                     onClick={() => {
                       const preferred = pickBestCamera(cameras);
-                      const preferredId = preferred && (preferred.id || preferred.deviceId || preferred.label) || null;
+                      const preferredId = normalizeCameraId(preferred);
                       setSelectedCamera(preferredId);
                       setManualCameraSelection(false);
-                      if (running) {
-                        stopScanner().then(() => startScanner());
-                      }
                     }}
                   >
                     Use Back Camera
