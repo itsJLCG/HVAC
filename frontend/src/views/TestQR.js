@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Card, Container, Row, Col, Button } from "react-bootstrap";
-import { Html5Qrcode } from "html5-qrcode";
+
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "";
 
@@ -19,11 +20,22 @@ function TestQR() {
 
   const pickBestCamera = (cameraList) => {
     if (!cameraList || !cameraList.length) return null;
-    const preferred = cameraList.find((camera) => {
-      const label = `${camera.label || ""} ${camera.id || camera.deviceId || ""}`.toLowerCase();
-      return label.includes("back") || label.includes("rear") || label.includes("environment");
-    });
-    return preferred || cameraList[0] || null;
+    const label = (c) => `${c.label || ""} ${c.id || c.deviceId || ""}`.toLowerCase();
+    const lbl = (c) => label(c);
+    const isBuiltIn = (c) => {
+      const l = lbl(c);
+      return l.includes("internal") || l.includes("built") || l.includes("integrated") || l.includes("face time");
+    };
+    // Prefer external USB cameras over built-in front cameras
+    const external = cameraList.find((c) => !isBuiltIn(c) && (lbl(c).includes("usb") || lbl(c).includes("external") || lbl(c).includes("hd")));
+    if (external) return external;
+    // Then prefer back/environment cameras (mobile)
+    const back = cameraList.find((c) => lbl(c).includes("back") || lbl(c).includes("rear") || lbl(c).includes("environment"));
+    if (back) return back;
+    // Prefer last camera over first (avoids built-in front camera when external is present)
+    const nonBuiltIn = cameraList.find((c) => !isBuiltIn(c));
+    if (nonBuiltIn) return nonBuiltIn;
+    return cameraList[0] || null;
   };
 
   const normalizeCameraId = (camera) => camera && (camera.id || camera.deviceId || null);
@@ -66,11 +78,26 @@ function TestQR() {
     return "Unable to start camera. Check browser permissions and camera availability.";
   };
 
-  const startScannerWithCameraArg = async (cameraArg) => {
-    const qrboxSize = getQrBoxSize();
+
+
+
+
+
+
+
+
+    const startScannerWithCameraArg = async (cameraArg) => {
     await scannerRef.current.start(
       cameraArg,
-      { fps: 15, qrbox: { width: qrboxSize, height: qrboxSize }, disableFlip: true },
+      {
+        fps: 10,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const size = Math.floor(minEdge * 0.85);
+          return { width: size, height: size };
+        },
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
+      },
       onScanSuccess,
       onScanError
     );
@@ -121,11 +148,14 @@ function TestQR() {
     }
   };
 
-  const onScanError = (errorMessage) => {
-    if (running) {
-      setScanStatus("Camera active - looking for a QR code");
-    }
-    console.debug("scan error", errorMessage);
+
+
+
+
+
+    const onScanError = (errorMessage) => {
+    // Avoid setting state or logging here as it fires many times per second
+    // and can severely degrade performance.
   };
 
   const startScanner = async () => {
@@ -149,7 +179,8 @@ function TestQR() {
       } catch (e) {
         console.debug('getCameras() failed', e);
       }
-      scannerRef.current = new Html5Qrcode(qrcodeRegionId, { verbose: true });
+
+      scannerRef.current = new Html5Qrcode(qrcodeRegionId, { verbose: false });
 
       const preferredCameraArg = cameraIdToUse
         ? { deviceId: { exact: cameraIdToUse } }
@@ -157,15 +188,17 @@ function TestQR() {
 
       console.log('starting scanner with cameraArg=', preferredCameraArg);
 
-      const fallbackAttempts = manualCameraSelection && cameraIdToUse ? [] : [];
-
       let lastStartError = null;
-      const attemptArgs = [preferredCameraArg, ...fallbackAttempts];
+      const attemptArgs = [preferredCameraArg];
+      if (!manualCameraSelection) {
+        attemptArgs.push({ facingMode: { ideal: 'user' } });
+      }
 
       for (const cameraArg of attemptArgs) {
         try {
           if (!scannerRef.current) {
-            scannerRef.current = new Html5Qrcode(qrcodeRegionId, { verbose: true });
+
+            scannerRef.current = new Html5Qrcode(qrcodeRegionId, { verbose: false });
           }
           console.log('starting scanner with cameraArg=', cameraArg);
           await startScannerWithCameraArg(cameraArg);
@@ -180,7 +213,8 @@ function TestQR() {
           if (isNotReadable && cameraArg === preferredCameraArg) {
             setScanStatus("Camera is busy. Retrying...");
             await sleep(750);
-            scannerRef.current = new Html5Qrcode(qrcodeRegionId, { verbose: true });
+
+            scannerRef.current = new Html5Qrcode(qrcodeRegionId, { verbose: false });
             try {
               await startScannerWithCameraArg(cameraArg);
               lastStartError = null;
@@ -240,7 +274,7 @@ function TestQR() {
                   {running ? "Live scanning" : "Camera stopped"}
                 </span>
                 <span style={{ padding: "6px 10px", borderRadius: 999, background: "#f0f0f0", color: "#222", fontSize: 12 }}>
-                  Scans multiple times per second at {15} fps
+                  Scans at 10 fps
                 </span>
               </div>
             </Card.Header>
@@ -253,14 +287,14 @@ function TestQR() {
                 <Button style={{ marginLeft: 8 }} onClick={() => { setScanned(""); setItemName(""); }}>
                   Clear
                 </Button>
-                {cameras && cameras.length > 1 && (
-                  <select style={{ marginLeft: 12 }} value={selectedCamera || ''} onChange={(e) => {
+                {cameras && cameras.length > 0 && (
+                  <select style={{ marginLeft: 12, maxWidth: 240 }} value={selectedCamera || ''} onChange={(e) => {
                     setSelectedCamera(e.target.value);
                     setManualCameraSelection(true);
                   }}>
                     {cameras.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.label || c.id}
+                        {c.label || `Camera ${c.id.slice(0, 8)}`}
                       </option>
                     ))}
                   </select>
@@ -276,7 +310,7 @@ function TestQR() {
                       setManualCameraSelection(false);
                     }}
                   >
-                    Use Back Camera
+                    Auto Select
                   </Button>
                 )}
               </div>
