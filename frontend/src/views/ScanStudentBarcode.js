@@ -1,135 +1,164 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Card, Container, Row, Col, Button } from "react-bootstrap";
-
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
+import { BrowserMultiFormatReader } from "@zxing/browser";
+import { BarcodeFormat, DecodeHintType, NotFoundException } from "@zxing/library";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "";
 
-// Barcode formats commonly printed on student/employee ID cards.
-// (Deliberately excludes QR_CODE — this scanner is for 1D barcodes.)
-const BARCODE_FORMATS = [
-  Html5QrcodeSupportedFormats.CODE_128,
-  Html5QrcodeSupportedFormats.CODE_39,
-  Html5QrcodeSupportedFormats.CODE_93,
-  Html5QrcodeSupportedFormats.CODABAR,
-  Html5QrcodeSupportedFormats.EAN_13,
-  Html5QrcodeSupportedFormats.EAN_8,
-  Html5QrcodeSupportedFormats.UPC_A,
-  Html5QrcodeSupportedFormats.UPC_E,
-  Html5QrcodeSupportedFormats.ITF,
+// Formats commonly printed on student/employee ID cards, plus QR as a bonus
+// since it costs nothing and helps when testing with uploaded images.
+const SUPPORTED_FORMATS = [
+  BarcodeFormat.CODE_128,
+  BarcodeFormat.CODE_39,
+  BarcodeFormat.CODE_93,
+  BarcodeFormat.CODABAR,
+  BarcodeFormat.EAN_13,
+  BarcodeFormat.EAN_8,
+  BarcodeFormat.UPC_A,
+  BarcodeFormat.UPC_E,
+  BarcodeFormat.ITF,
+  BarcodeFormat.QR_CODE,
 ];
 
+const hints = new Map();
+hints.set(DecodeHintType.POSSIBLE_FORMATS, SUPPORTED_FORMATS);
+hints.set(DecodeHintType.TRY_HARDER, true);
+
+const CopyIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="9" y="9" width="12" height="12" rx="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </svg>
+);
+const TrashIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M3 6h18" />
+    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+  </svg>
+);
+const DocIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <path d="M14 2v6h6" />
+    <path d="M9 13h6M9 17h6" />
+  </svg>
+);
+const UploadIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <path d="M17 8l-5-5-5 5" />
+    <path d="M12 3v12" />
+  </svg>
+);
+const ScanIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
+    <path d="M7 12h10" />
+  </svg>
+);
+
 function ScanStudentBarcode() {
-  const [scanned, setScanned] = useState("");
-  const [student, setStudent] = useState(null);
-  const [lookupError, setLookupError] = useState("");
-  const [lookingUp, setLookingUp] = useState(false);
-  const [running, setRunning] = useState(false);
-  const [scanStatus, setScanStatus] = useState("Camera idle");
-  const [lastDetectedAt, setLastDetectedAt] = useState(null);
-  const scannerRef = useRef(null);
-  const barcodeRegionId = "html5-barcode-reader";
+  const [mode, setMode] = useState("scan"); // "scan" | "upload"
+
   const [cameras, setCameras] = useState([]);
   const [selectedCamera, setSelectedCamera] = useState(null);
-  const [manualCameraSelection, setManualCameraSelection] = useState(false);
-  const restartingCameraRef = useRef(false);
-  // Avoid spamming the API with the exact same barcode repeatedly while it's
-  // still in frame — html5-qrcode fires onScanSuccess many times per second.
-  const lastLookupRef = useRef({ value: "", at: 0 });
+  const [running, setRunning] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const [statusMsg, setStatusMsg] = useState("");
 
-  const pickBestCamera = (cameraList) => {
-    if (!cameraList || !cameraList.length) return null;
-    const label = (c) => `${c.label || ""} ${c.id || c.deviceId || ""}`.toLowerCase();
-    const lbl = (c) => label(c);
-    const isBuiltIn = (c) => {
-      const l = lbl(c);
-      return l.includes("internal") || l.includes("built") || l.includes("integrated") || l.includes("face time");
-    };
-    // Prefer external USB cameras/scanners over built-in front cameras
-    const external = cameraList.find((c) => !isBuiltIn(c) && (lbl(c).includes("usb") || lbl(c).includes("external") || lbl(c).includes("hd")));
-    if (external) return external;
-    // Then prefer back/environment cameras (mobile)
-    const back = cameraList.find((c) => lbl(c).includes("back") || lbl(c).includes("rear") || lbl(c).includes("environment"));
-    if (back) return back;
-    // Prefer any non-built-in over first
-    const nonBuiltIn = cameraList.find((c) => !isBuiltIn(c));
-    if (nonBuiltIn) return nonBuiltIn;
-    return cameraList[0] || null;
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadPreview, setUploadPreview] = useState(null);
+
+  const [scanned, setScanned] = useState("");
+  const [student, setStudent] = useState(null);
+  const [lookingUp, setLookingUp] = useState(false);
+  const [lookupError, setLookupError] = useState("");
+  const [decodeError, setDecodeError] = useState("");
+  const [history, setHistory] = useState([]);
+
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+  const readerRef = useRef(null);
+
+  const getReader = () => {
+    if (!readerRef.current) {
+      readerRef.current = new BrowserMultiFormatReader(hints);
+    }
+    return readerRef.current;
   };
 
-  const normalizeCameraId = (camera) => camera && (camera.id || camera.deviceId || null);
+  // ---------- camera device list ----------
+  useEffect(() => {
+    BrowserMultiFormatReader.listVideoInputDevices()
+      .then((devices) => {
+        setCameras(devices || []);
+        if (devices && devices.length) {
+          const back = devices.find((d) => /back|rear|environment/i.test(d.label || ""));
+          setSelectedCamera((back || devices[0]).deviceId);
+        }
+      })
+      .catch((e) => console.debug("listVideoInputDevices failed", e));
+  }, []);
 
-  const normalizeCameras = (cameraList) => (cameraList || [])
-    .map((camera) => ({
-      ...camera,
-      id: normalizeCameraId(camera),
-    }))
-    .filter((camera) => camera.id);
-
-  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-  const getCameraStartMessage = (error) => {
-    const rawMessage = `${error?.name || ""} ${error?.message || error || ""}`.toLowerCase();
-    const errorName = `${error?.name || ""}`.toLowerCase();
-
-    if (!window.isSecureContext && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
-      return "Camera access requires HTTPS or localhost.";
+  // ---------- camera preview (manual capture, no auto-decode loop) ----------
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
     }
-
-    if (rawMessage.includes("notallowed") || rawMessage.includes("permission")) {
-      return "Camera permission was denied. Allow camera access in the browser and try again.";
-    }
-
-    if (rawMessage.includes("notfound") || rawMessage.includes("overconstrained") || rawMessage.includes("device")) {
-      return "The selected camera is unavailable. Try a different camera or reconnect the webcam.";
-    }
-
-    if (errorName.includes("notreadable")) {
-      return "The camera is already in use or Windows/browser cannot open it. Close other apps using the webcam, then try again.";
-    }
-
-    return "Unable to start camera. Check browser permissions and camera availability.";
-  };
-
-  const startScannerWithCameraArg = async (cameraArg) => {
-    await scannerRef.current.start(
-      cameraArg,
-      {
-        fps: 10,
-        // Barcodes are wide and short, not square — a wide box makes them much
-        // easier to line up than the square box used for QR scanning.
-        qrbox: (viewfinderWidth, viewfinderHeight) => {
-          const boxWidth = Math.floor(Math.min(viewfinderWidth * 0.9, 500));
-          const boxHeight = Math.floor(Math.min(viewfinderHeight * 0.35, 160));
-          return { width: boxWidth, height: boxHeight };
-        },
-        formatsToSupport: BARCODE_FORMATS,
-      },
-      onScanSuccess,
-      onScanError
-    );
-  };
-
-  const stopScanner = useCallback(async () => {
-    if (!scannerRef.current) return;
-    try {
-      await scannerRef.current.stop();
-      scannerRef.current.clear();
-    } catch (e) {
-      // ignore
-    }
-    scannerRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
     setRunning(false);
   }, []);
 
+  const startCamera = useCallback(async () => {
+    try {
+      setStatusMsg("Starting camera...");
+      const constraints = selectedCamera
+        ? { video: { deviceId: { exact: selectedCamera } } }
+        : { video: { facingMode: { ideal: "environment" } } };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setRunning(true);
+      setStatusMsg("");
+    } catch (e) {
+      console.error("Start camera failed", e);
+      setRunning(false);
+      setStatusMsg("Camera failed to start. Check permissions and try again.");
+    }
+  }, [selectedCamera]);
+
+  // Start/stop the preview automatically when switching to the Scan tab,
+  // and whenever the chosen camera changes while on that tab.
+  useEffect(() => {
+    if (mode !== "scan") {
+      stopCamera();
+      return;
+    }
+    stopCamera();
+    startCamera();
+
+  }, [mode, selectedCamera]);
+
   useEffect(() => {
     return () => {
-      stopScanner();
+      stopCamera();
+      if (readerRef.current) {
+        try {
+          BrowserMultiFormatReader.releaseAllStreams?.();
+        } catch (e) {
+          // ignore
+        }
+      }
     };
-  }, [stopScanner]);
+  }, [stopCamera]);
 
-  // Look up a scanned TUPT ID against the students table (matches the
-  // `tupt_id` column, case-insensitive on the backend via COLLATE NOCASE).
+  // ---------- shared: student lookup ----------
   const lookupStudent = (tuptId) => {
     if (!tuptId) return;
     setLookingUp(true);
@@ -139,231 +168,341 @@ function ScanStudentBarcode() {
         if (!r.ok) throw new Error(`not found (${r.status})`);
         return r.json();
       })
-      .then((data) => {
-        setStudent(data);
-      })
-      .catch((err) => {
-        console.debug("student lookup error", err);
+      .then((data) => setStudent(data))
+      .catch(() => {
         setStudent(null);
         setLookupError("No student found for this TUPT ID.");
       })
       .finally(() => setLookingUp(false));
   };
 
-  const onScanSuccess = (decodedText, decodedResult) => {
-    const tuptId = String(decodedText || "").trim();
-    if (!tuptId) return;
+  const addToHistory = (value, source) => {
+    setHistory((h) => [
+      { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, value, source, at: new Date() },
+      ...h,
+    ]);
+  };
 
-    // Debounce: skip if this exact value was just looked up within 2s
-    // (the same physical barcode stays in frame across many scan callbacks).
-    const now = Date.now();
-    if (lastLookupRef.current.value === tuptId && now - lastLookupRef.current.at < 2000) {
+  const handleDecodedValue = (rawValue, source) => {
+    const value = String(rawValue || "").trim();
+    if (!value) return;
+    setScanned(value);
+    addToHistory(value, source);
+    lookupStudent(value);
+  };
+
+  // ---------- Capture (from live camera frame) ----------
+  const captureAndScan = async () => {
+    if (!videoRef.current || !streamRef.current) return;
+    setDecodeError("");
+    setLookupError("");
+    setCapturing(true);
+    try {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const reader = getReader();
+      const result = reader.decodeFromCanvas(canvas);
+      handleDecodedValue(result.getText(), "camera");
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        setDecodeError(
+          "No barcode detected in the captured frame. Get closer, improve lighting, and hold it steady, then press Capture again."
+        );
+      } else {
+        console.error("capture decode error", err);
+        setDecodeError("Something went wrong decoding that frame. Please try again.");
+      }
+    } finally {
+      setCapturing(false);
+    }
+  };
+
+  // ---------- Upload an image / file ----------
+  const handleUploadFileChange = (e) => {
+    const f = e.target.files && e.target.files[0];
+    setUploadFile(f || null);
+    setUploadPreview(f ? URL.createObjectURL(f) : null);
+    setDecodeError("");
+  };
+
+  const scanUploadedFile = async () => {
+    if (!uploadFile) {
+      setDecodeError("Choose an image file first.");
       return;
     }
-    lastLookupRef.current = { value: tuptId, at: now };
-
-    console.log("Barcode scan success:", tuptId, decodedResult);
-    setScanned(tuptId);
-    setLastDetectedAt(new Date());
-    setScanStatus(`Barcode detected: ${tuptId}`);
-    lookupStudent(tuptId);
-  };
-
-  const onScanError = (errorMessage) => {
-    // Avoid setting state or logging here as it fires many times per second
-    // and can severely degrade performance.
-  };
-
-  const startScanner = async () => {
-    if (running) return;
+    setDecodeError("");
+    setLookupError("");
+    setCapturing(true);
+    const objectUrl = URL.createObjectURL(uploadFile);
     try {
-      setScanStatus("Starting camera...");
-      let cams = [];
-      let cameraIdToUse = null;
-      try {
-        cams = await Html5Qrcode.getCameras();
-        console.log("available cameras:", cams);
-        const normalizedCams = normalizeCameras(cams);
-        setCameras(normalizedCams);
-        if (normalizedCams.length) {
-          const preferredCamera = pickBestCamera(normalizedCams);
-          const preferredCameraId = normalizeCameraId(preferredCamera);
-          cameraIdToUse = manualCameraSelection && selectedCamera ? selectedCamera : preferredCameraId;
-          setSelectedCamera(cameraIdToUse);
-          setManualCameraSelection(false);
-        }
-      } catch (e) {
-        console.debug("getCameras() failed", e);
+      const reader = getReader();
+      const result = await reader.decodeFromImageUrl(objectUrl);
+      handleDecodedValue(result.getText(), "upload");
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        setDecodeError("No barcode detected in that image. Try a clearer, higher-resolution photo.");
+      } else {
+        console.error("upload decode error", err);
+        setDecodeError("Something went wrong decoding that file. Please try a different image.");
       }
-
-      scannerRef.current = new Html5Qrcode(barcodeRegionId, { verbose: false });
-
-      const preferredCameraArg = cameraIdToUse
-        ? { deviceId: { exact: cameraIdToUse } }
-        : { facingMode: { ideal: "environment" } };
-
-      console.log("starting scanner with cameraArg=", preferredCameraArg);
-
-      let lastStartError = null;
-      const attemptArgs = [preferredCameraArg];
-      if (!manualCameraSelection) {
-        attemptArgs.push({ facingMode: { ideal: "user" } });
-      }
-
-      for (const cameraArg of attemptArgs) {
-        try {
-          if (!scannerRef.current) {
-            scannerRef.current = new Html5Qrcode(barcodeRegionId, { verbose: false });
-          }
-          console.log("starting scanner with cameraArg=", cameraArg);
-          await startScannerWithCameraArg(cameraArg);
-          lastStartError = null;
-          break;
-        } catch (attemptError) {
-          lastStartError = attemptError;
-          console.debug("camera start attempt failed", cameraArg, attemptError);
-          scannerRef.current = null;
-
-          const isNotReadable = `${attemptError?.name || ""}`.toLowerCase().includes("notreadable");
-          if (isNotReadable && cameraArg === preferredCameraArg) {
-            setScanStatus("Camera is busy. Retrying...");
-            await sleep(750);
-
-            scannerRef.current = new Html5Qrcode(barcodeRegionId, { verbose: false });
-            try {
-              await startScannerWithCameraArg(cameraArg);
-              lastStartError = null;
-              break;
-            } catch (retryError) {
-              lastStartError = retryError;
-              console.debug("camera retry failed", cameraArg, retryError);
-              scannerRef.current = null;
-            }
-          }
-        }
-      }
-
-      if (lastStartError) {
-        throw lastStartError;
-      }
-
-      setRunning(true);
-      setScanStatus("Camera live - scanning continuously");
-      console.log("scanner started");
-    } catch (e) {
-      console.error("Start scanner failed", e);
-      setScanStatus("Camera failed to start");
-      alert(getCameraStartMessage(e));
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+      setCapturing(false);
     }
   };
 
-  // If user switches camera while scanner is running, restart with the new device
-  useEffect(() => {
-    if (!running || restartingCameraRef.current) return;
-    (async () => {
-      try {
-        restartingCameraRef.current = true;
-        setScanStatus("Switching camera...");
-        await stopScanner();
-        await startScanner();
-      } catch (err) {
-        console.debug("restart scanner on camera change failed", err);
-      } finally {
-        restartingCameraRef.current = false;
-      }
-    })();
-  }, [selectedCamera]);
+  // ---------- history actions ----------
+  const copyValue = async (value) => {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch (e) {
+      // ignore
+    }
+  };
+  const removeHistoryItem = (id) => setHistory((h) => h.filter((item) => item.id !== id));
+  const useHistoryItem = (value) => {
+    setScanned(value);
+    lookupStudent(value);
+  };
 
   return (
     <Container fluid>
       <Row>
-        <Col md={8}>
+        <Col md={7}>
           <Card>
-            <Card.Header>
-              <Card.Title as="h4">Student ID Barcode Scanner</Card.Title>
-              <p className="card-category">Scan a student's TUPT ID barcode to look them up</p>
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 8 }}>
-                <span style={{ padding: "6px 10px", borderRadius: 999, background: running ? "#1f7a1f" : "#666", color: "#fff", fontSize: 12, fontWeight: 700 }}>
-                  {running ? "Live scanning" : "Camera stopped"}
-                </span>
-                <span style={{ padding: "6px 10px", borderRadius: 999, background: "#f0f0f0", color: "#222", fontSize: 12 }}>
-                  Scans at 10 fps
-                </span>
-              </div>
-            </Card.Header>
-            <Card.Body>
-              <div id={barcodeRegionId} style={{ width: "100%", minHeight: 360, background: "#000" }} />
-              <div style={{ marginTop: 12 }}>
-                <Button variant={running ? "danger" : "primary"} onClick={() => (running ? stopScanner() : startScanner())}>
-                  {running ? "Stop Camera" : "Start Camera"}
-                </Button>
-                <Button
-                  style={{ marginLeft: 8 }}
-                  onClick={() => {
-                    setScanned("");
-                    setStudent(null);
-                    setLookupError("");
-                    lastLookupRef.current = { value: "", at: 0 };
+            <Card.Body style={{ padding: 20 }}>
+              {/* Tabs: Upload / Scan */}
+              <div
+                style={{
+                  display: "flex",
+                  background: "#f1f3f5",
+                  borderRadius: 10,
+                  padding: 4,
+                  marginBottom: 16,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setMode("upload")}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: "none",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    background: mode === "upload" ? "#fff" : "transparent",
+                    boxShadow: mode === "upload" ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                    color: "#222",
                   }}
                 >
-                  Clear
-                </Button>
-                {cameras && cameras.length > 0 && (
-                  <select
-                    style={{ marginLeft: 12, maxWidth: 240 }}
-                    value={selectedCamera || ""}
-                    onChange={(e) => {
-                      setSelectedCamera(e.target.value);
-                      setManualCameraSelection(true);
+                  <UploadIcon /> Upload
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("scan")}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: "none",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    background: mode === "scan" ? "#fff" : "transparent",
+                    boxShadow: mode === "scan" ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                    color: "#222",
+                  }}
+                >
+                  <ScanIcon /> Scan
+                </button>
+              </div>
+
+              {/* Dashed capture area */}
+              <div
+                style={{
+                  border: "2px dashed #cfd4da",
+                  borderRadius: 12,
+                  padding: 16,
+                  position: "relative",
+                }}
+              >
+                {mode === "scan" ? (
+                  <>
+                    <div
+                      style={{
+                        background: "#fff",
+                        border: "1px solid #eee",
+                        borderRadius: 8,
+                        padding: "8px 12px",
+                        fontWeight: 700,
+                        fontSize: 13,
+                        marginBottom: 12,
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                      }}
+                    >
+                      Make sure the barcode is clear for best results.
+                    </div>
+                    <div
+                      style={{
+                        position: "relative",
+                        width: "100%",
+                        minHeight: 300,
+                        background: "#000",
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <video
+                        ref={videoRef}
+                        playsInline
+                        muted
+                        style={{ width: "100%", height: "auto", display: running ? "block" : "none" }}
+                      />
+                      {!running && (
+                        <span style={{ color: "#999", fontSize: 13 }}>
+                          {statusMsg || "Camera preview will appear here"}
+                        </span>
+                      )}
+                      {running && (
+                        <button
+                          type="button"
+                          onClick={captureAndScan}
+                          disabled={capturing}
+                          style={{
+                            position: "absolute",
+                            bottom: 14,
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            background: "#fff",
+                            border: "none",
+                            borderRadius: 8,
+                            padding: "10px 22px",
+                            fontWeight: 700,
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {capturing ? "Scanning..." : "Capture"}
+                        </button>
+                      )}
+                    </div>
+                    <canvas ref={canvasRef} style={{ display: "none" }} />
+                  </>
+                ) : (
+                  <div
+                    style={{
+                      minHeight: 300,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 12,
+                      textAlign: "center",
                     }}
                   >
+                    <label
+                      htmlFor="student-barcode-upload"
+                      style={{
+                        cursor: "pointer",
+                        border: "1px solid #ddd",
+                        borderRadius: 8,
+                        padding: "10px 18px",
+                        fontWeight: 700,
+                        background: "#fff",
+                      }}
+                    >
+                      Choose Image / File
+                    </label>
+                    <input
+                      id="student-barcode-upload"
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={handleUploadFileChange}
+                    />
+                    {uploadPreview ? (
+                      <img
+                        src={uploadPreview}
+                        alt="upload preview"
+                        style={{ maxWidth: "100%", maxHeight: 220, objectFit: "contain", borderRadius: 6 }}
+                      />
+                    ) : (
+                      <div style={{ color: "#999", fontSize: 13 }}>
+                        Upload a photo or file of a barcode / QR code to test
+                      </div>
+                    )}
+                    <Button variant="primary" onClick={scanUploadedFile} disabled={!uploadFile || capturing}>
+                      {capturing ? "Scanning..." : "Scan Uploaded File"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {mode === "scan" && (
+                <>
+                  <div style={{ marginTop: 16, fontWeight: 700, fontSize: 14 }}>Available Camera</div>
+                  <select
+                    className="form-control"
+                    style={{ marginTop: 6 }}
+                    value={selectedCamera || ""}
+                    onChange={(e) => setSelectedCamera(e.target.value)}
+                    disabled={!cameras.length}
+                  >
+                    {cameras.length === 0 && <option value="">No camera detected</option>}
                     {cameras.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label || `Camera ${c.id.slice(0, 8)}`}
+                      <option key={c.deviceId} value={c.deviceId}>
+                        {c.label || `Camera ${c.deviceId.slice(0, 8)}`}
                       </option>
                     ))}
                   </select>
-                )}
-                {cameras && cameras.length > 1 && (
-                  <Button
-                    style={{ marginLeft: 8 }}
-                    variant="outline-primary"
-                    onClick={() => {
-                      const preferred = pickBestCamera(cameras);
-                      const preferredId = normalizeCameraId(preferred);
-                      setSelectedCamera(preferredId);
-                      setManualCameraSelection(false);
-                    }}
-                  >
-                    Auto Select
-                  </Button>
-                )}
-              </div>
-              <div style={{ marginTop: 12, padding: 12, background: "#f8f9fa", borderRadius: 8 }}>
-                <div style={{ fontWeight: 700, marginBottom: 6 }}>Scanner status</div>
-                <div>{scanStatus}</div>
-                <div style={{ marginTop: 6 }}>
-                  <strong>Last detection:</strong> {lastDetectedAt ? lastDetectedAt.toLocaleTimeString() : "none yet"}
+                </>
+              )}
+
+              {decodeError && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    color: "#b00020",
+                    background: "#fdecea",
+                    border: "1px solid #f5c2c0",
+                    borderRadius: 6,
+                    padding: "10px 12px",
+                    fontSize: 13,
+                  }}
+                >
+                  {decodeError}
                 </div>
-                <div style={{ marginTop: 6 }}>
-                  <strong>Tip:</strong> hold the ID steady so the barcode fills the wide box, not just anywhere in the frame.
-                </div>
-              </div>
+              )}
             </Card.Body>
           </Card>
         </Col>
-        <Col md={4}>
+
+        <Col md={5}>
           <Card>
             <Card.Header>
               <Card.Title as="h4">Student Lookup</Card.Title>
             </Card.Header>
             <Card.Body>
-              <div><strong>Raw barcode:</strong></div>
-              <div style={{ wordBreak: "break-all", marginBottom: 12 }}>{scanned || "(no scan yet)"}</div>
+              <div><strong>Last decoded value:</strong></div>
+              <div style={{ wordBreak: "break-all", marginBottom: 12 }}>{scanned || "(none yet)"}</div>
 
-              {lookingUp && (
-                <div style={{ color: "#666", marginBottom: 12 }}>Looking up student...</div>
-              )}
+              {lookingUp && <div style={{ color: "#666", marginBottom: 12 }}>Looking up student...</div>}
 
               {!lookingUp && lookupError && (
                 <div
@@ -381,24 +520,69 @@ function ScanStudentBarcode() {
               )}
 
               {!lookingUp && student ? (
-                <div
-                  style={{
-                    background: "#eaf7ec",
-                    border: "1px solid #bfe3c4",
-                    borderRadius: 8,
-                    padding: "14px 16px",
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#1f7a1f", marginBottom: 4 }}>
-                    MATCH FOUND
-                  </div>
+                <div style={{ background: "#eaf7ec", border: "1px solid #bfe3c4", borderRadius: 8, padding: "14px 16px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#1f7a1f", marginBottom: 4 }}>MATCH FOUND</div>
                   <div style={{ fontSize: 18, fontWeight: 700 }}>{student.full_name}</div>
-                  <div style={{ marginTop: 6 }}>
-                    <strong>TUPT ID:</strong> {student.tupt_id}
-                  </div>
+                  <div style={{ marginTop: 6 }}><strong>TUPT ID:</strong> {student.tupt_id}</div>
                 </div>
               ) : (
                 !lookingUp && !lookupError && <div>(no student scanned yet)</div>
+              )}
+            </Card.Body>
+          </Card>
+
+          <Card className="mt-3">
+            <Card.Header>
+              <Card.Title as="h4">Scan History</Card.Title>
+              <p className="card-category">Every barcode captured or uploaded this session</p>
+            </Card.Header>
+            <Card.Body style={{ maxHeight: 360, overflowY: "auto" }}>
+              {history.length === 0 ? (
+                <div style={{ color: "#999" }}>No scans yet.</div>
+              ) : (
+                history.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    onClick={() => useHistoryItem(item.value)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "10px 4px",
+                      borderBottom: idx < history.length - 1 ? "1px solid #eee" : "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                      <span style={{ color: "#3b82f6", flexShrink: 0 }}><DocIcon /></span>
+                      <span style={{ fontWeight: 700, color: "#3b82f6", flexShrink: 0 }}>TXT:</span>
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {item.value}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, marginLeft: 8 }}>
+                      <span style={{ fontSize: 11, color: "#888", fontWeight: 700 }}>
+                        {item.source === "camera" ? "CAM" : "FILE"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); copyValue(item.value); }}
+                        style={{ background: "none", border: "none", color: "#555", cursor: "pointer", padding: 2 }}
+                        title="Copy"
+                      >
+                        <CopyIcon />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); removeHistoryItem(item.id); }}
+                        style={{ background: "none", border: "none", color: "#b00020", cursor: "pointer", padding: 2 }}
+                        title="Delete"
+                      >
+                        <TrashIcon />
+                      </button>
+                    </div>
+                  </div>
+                ))
               )}
             </Card.Body>
           </Card>
