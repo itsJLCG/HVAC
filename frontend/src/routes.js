@@ -22,6 +22,7 @@ import UpdateInventory from "views/UpdateInventory.js";
 import AllBorrowedInventory from "views/AllBorrowedInventory.js";
 import TestQR from "views/TestQR.js";
 import ScanStudentBarcode from "views/ScanStudentBarcode.js";
+import ManageStudents from "views/ManageStudents.js";
 
 const dashboardRoutes = [
   {
@@ -57,6 +58,13 @@ const dashboardRoutes = [
     name: "Borrowed Inventory",
     icon: "nc-icon nc-paper-2",
     component: AllBorrowedInventory,
+    layout: "/admin"
+  },
+  {
+    path: "/manage-students",
+    name: "Manage Students",
+    icon: "nc-icon nc-badge",
+    component: ManageStudents,
     layout: "/admin"
   },
   {

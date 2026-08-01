@@ -16,4 +16,14 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-module.exports = { upload, imagesDir, publicDir };
+const importStorage = multer.memoryStorage();
+const uploadImport = multer({
+  storage: importStorage,
+  fileFilter: (req, file, cb) => {
+    const allowed = /\.(csv|xlsx|xls)$/i;
+    if (allowed.test(file.originalname)) cb(null, true);
+    else cb(new Error("Only .csv, .xlsx, or .xls files are allowed"));
+  },
+});
+
+module.exports = { upload, uploadImport, imagesDir, publicDir };

@@ -23,6 +23,7 @@ function ScanStudentBarcode() {
   const [scanned, setScanned] = useState("");
   const [student, setStudent] = useState(null);
   const [lookupError, setLookupError] = useState("");
+  const [lookingUp, setLookingUp] = useState(false);
   const [running, setRunning] = useState(false);
   const [scanStatus, setScanStatus] = useState("Camera idle");
   const [lastDetectedAt, setLastDetectedAt] = useState(null);
@@ -32,6 +33,9 @@ function ScanStudentBarcode() {
   const [selectedCamera, setSelectedCamera] = useState(null);
   const [manualCameraSelection, setManualCameraSelection] = useState(false);
   const restartingCameraRef = useRef(false);
+  // Avoid spamming the API with the exact same barcode repeatedly while it's
+  // still in frame — html5-qrcode fires onScanSuccess many times per second.
+  const lastLookupRef = useRef({ value: "", at: 0 });
 
   const pickBestCamera = (cameraList) => {
     if (!cameraList || !cameraList.length) return null;
@@ -124,8 +128,11 @@ function ScanStudentBarcode() {
     };
   }, [stopScanner]);
 
+  // Look up a scanned TUPT ID against the students table (matches the
+  // `tupt_id` column, case-insensitive on the backend via COLLATE NOCASE).
   const lookupStudent = (tuptId) => {
     if (!tuptId) return;
+    setLookingUp(true);
     setLookupError("");
     fetch(`${API_BASE}/api/students/by-tupt/${encodeURIComponent(tuptId)}`)
       .then((r) => {
@@ -139,12 +146,23 @@ function ScanStudentBarcode() {
         console.debug("student lookup error", err);
         setStudent(null);
         setLookupError("No student found for this TUPT ID.");
-      });
+      })
+      .finally(() => setLookingUp(false));
   };
 
   const onScanSuccess = (decodedText, decodedResult) => {
-    console.log("Barcode scan success:", decodedText, decodedResult);
-    const tuptId = decodedText.trim();
+    const tuptId = String(decodedText || "").trim();
+    if (!tuptId) return;
+
+    // Debounce: skip if this exact value was just looked up within 2s
+    // (the same physical barcode stays in frame across many scan callbacks).
+    const now = Date.now();
+    if (lastLookupRef.current.value === tuptId && now - lastLookupRef.current.at < 2000) {
+      return;
+    }
+    lastLookupRef.current = { value: tuptId, at: now };
+
+    console.log("Barcode scan success:", tuptId, decodedResult);
     setScanned(tuptId);
     setLastDetectedAt(new Date());
     setScanStatus(`Barcode detected: ${tuptId}`);
@@ -285,6 +303,7 @@ function ScanStudentBarcode() {
                     setScanned("");
                     setStudent(null);
                     setLookupError("");
+                    lastLookupRef.current = { value: "", at: 0 };
                   }}
                 >
                   Clear
@@ -342,21 +361,44 @@ function ScanStudentBarcode() {
               <div><strong>Raw barcode:</strong></div>
               <div style={{ wordBreak: "break-all", marginBottom: 12 }}>{scanned || "(no scan yet)"}</div>
 
-              {lookupError && (
-                <div style={{ color: "#b00020", marginBottom: 12 }}>{lookupError}</div>
+              {lookingUp && (
+                <div style={{ color: "#666", marginBottom: 12 }}>Looking up student...</div>
               )}
 
-              {student ? (
-                <div>
+              {!lookingUp && lookupError && (
+                <div
+                  style={{
+                    color: "#b00020",
+                    background: "#fdecea",
+                    border: "1px solid #f5c2c0",
+                    borderRadius: 6,
+                    padding: "10px 12px",
+                    marginBottom: 12,
+                  }}
+                >
+                  {lookupError}
+                </div>
+              )}
+
+              {!lookingUp && student ? (
+                <div
+                  style={{
+                    background: "#eaf7ec",
+                    border: "1px solid #bfe3c4",
+                    borderRadius: 8,
+                    padding: "14px 16px",
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#1f7a1f", marginBottom: 4 }}>
+                    MATCH FOUND
+                  </div>
                   <div style={{ fontSize: 18, fontWeight: 700 }}>{student.full_name}</div>
-                  <div style={{ marginTop: 8 }}><strong>TUPT ID:</strong> {student.tupt_id}</div>
-                  <div><strong>Course:</strong> {student.course || "—"}</div>
-                  <div><strong>Year Level:</strong> {student.year_level || "—"}</div>
-                  <div><strong>Email:</strong> {student.email || "—"}</div>
-                  <div><strong>Contact No.:</strong> {student.contact_number || "—"}</div>
+                  <div style={{ marginTop: 6 }}>
+                    <strong>TUPT ID:</strong> {student.tupt_id}
+                  </div>
                 </div>
               ) : (
-                !lookupError && <div>(no student scanned yet)</div>
+                !lookingUp && !lookupError && <div>(no student scanned yet)</div>
               )}
             </Card.Body>
           </Card>

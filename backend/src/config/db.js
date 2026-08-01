@@ -84,15 +84,15 @@ function initDb() {
         });
       } else {
         // Ensure image_url and qr_value columns exist (in case older table lacks them)
-        db.run("ALTER TABLE items ADD COLUMN image_url TEXT", () => {});
-        db.run("ALTER TABLE items ADD COLUMN qr_value TEXT", () => {});
+        db.run("ALTER TABLE items ADD COLUMN image_url TEXT", () => { });
+        db.run("ALTER TABLE items ADD COLUMN qr_value TEXT", () => { });
         normalizeQrValues();
       }
     });
   });
 }
 
-function initStudentsDb() {
+/*function initStudentsDb() {
   db.run(
     `CREATE TABLE IF NOT EXISTS students (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -108,6 +108,53 @@ function initStudentsDb() {
       if (err) console.error("Failed to create students table:", err.message);
     }
   );
+} */
+
+function initStudentsDb() {
+  db.all("PRAGMA table_info(students)", (err, cols) => {
+    if (err || !cols || cols.length === 0) {
+      db.run(
+        `CREATE TABLE IF NOT EXISTS students (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          tupt_id TEXT NOT NULL UNIQUE,
+          full_name TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`,
+        (createErr) => {
+          if (createErr) console.error("Failed to create students table:", createErr.message);
+        }
+      );
+      return;
+    }
+
+    const colNames = cols.map((c) => c.name);
+    const extraCols = ["course", "year_level", "email", "contact_number"];
+    const hasExtra = extraCols.some((c) => colNames.includes(c));
+
+    if (!hasExtra) return; // already simplified, nothing to do
+
+    db.serialize(() => {
+      db.run("BEGIN TRANSACTION");
+      db.run(
+        `CREATE TABLE IF NOT EXISTS students_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          tupt_id TEXT NOT NULL UNIQUE,
+          full_name TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`
+      );
+      db.run(
+        `INSERT INTO students_new (id, tupt_id, full_name, created_at)
+         SELECT id, tupt_id, full_name, created_at FROM students`
+      );
+      db.run("DROP TABLE students");
+      db.run("ALTER TABLE students_new RENAME TO students");
+      db.run("COMMIT", (commitErr) => {
+        if (commitErr) console.error("Students migration failed:", commitErr.message);
+        else console.log("Students table simplified (removed course/year_level/email/contact_number).");
+      });
+    });
+  });
 }
 
-module.exports = { db, DB_PATH, initDb, buildQrValue, initStudentsDb};
+module.exports = { db, DB_PATH, initDb, buildQrValue, initStudentsDb };
