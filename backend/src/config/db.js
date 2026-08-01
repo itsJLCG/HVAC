@@ -157,4 +157,24 @@ function initStudentsDb() {
   });
 }
 
-module.exports = { db, DB_PATH, initDb, buildQrValue, initStudentsDb };
+function initBorrowsDb() {
+  db.run(
+    `CREATE TABLE IF NOT EXISTS borrow_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_name TEXT NOT NULL,
+      student_tupt_id TEXT,
+      item_id INTEGER,
+      item_name TEXT NOT NULL,
+      quantity INTEGER DEFAULT 1,
+      borrowed_date TEXT NOT NULL,
+      due_date TEXT,
+      status TEXT DEFAULT 'Borrowed',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    (err) => {
+      if (err) console.error("Failed to create borrow_records table:", err.message);
+    }
+  );
+}
+
+module.exports = { db, DB_PATH, initDb, buildQrValue, initStudentsDb, initBorrowsDb };

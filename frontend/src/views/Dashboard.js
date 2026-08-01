@@ -16,7 +16,73 @@ import {
   Tooltip,
 } from "react-bootstrap";
 
+const API_BASE = process.env.REACT_APP_API_BASE || "";
+
 function Dashboard() {
+  const [stats, setStats] = React.useState({
+    items: 0,
+    students: 0,
+    borrowed: 0,
+    returned: 0,
+  });
+  const [activity, setActivity] = React.useState({
+    labels: [],
+    series: [[], [], []],
+  });
+
+  const loadStats = () => {
+    fetch(`${API_BASE}/api/stats`)
+      .then((res) => res.json())
+      .then((data) =>
+        setStats({
+          items: data.items || 0,
+          students: data.students || 0,
+          borrowed: data.borrowed || 0,
+          returned: data.returned || 0,
+        })
+      )
+      .catch((err) => console.error("Failed to load stats:", err));
+  };
+
+  const buildActivityData = (borrows) => {
+    const labels = [];
+    const borrowed = [];
+    const returned = [];
+    const overdue = [];
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const day = new Date(today);
+      day.setDate(today.getDate() - i);
+      const key = day.toISOString().slice(0, 10);
+      labels.push(day.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }));
+      borrowed.push(0);
+      returned.push(0);
+      overdue.push(0);
+      borrows.forEach((b) => {
+        if (String(b.borrowed_date || "").slice(0, 10) !== key) return;
+        if (b.status === "Returned") returned[returned.length - 1] += b.quantity || 1;
+        else {
+          borrowed[borrowed.length - 1] += b.quantity || 1;
+          const due = new Date(b.due_date);
+          if (b.due_date && !isNaN(due) && due < today) overdue[overdue.length - 1] += b.quantity || 1;
+        }
+      });
+    }
+    return { labels, series: [borrowed, returned, overdue] };
+  };
+
+  const loadActivity = () => {
+    fetch(`${API_BASE}/api/borrows`)
+      .then((res) => res.json())
+      .then((data) => setActivity(buildActivityData(Array.isArray(data) ? data : [])))
+      .catch((err) => console.error("Failed to load borrowing activity:", err));
+  };
+
+  React.useEffect(() => {
+    loadStats();
+    loadActivity();
+  }, []);
+
   return (
     <>
       <Container fluid>
@@ -32,8 +98,8 @@ function Dashboard() {
                   </Col>
                   <Col xs="7">
                     <div className="numbers">
-                      <p className="card-category">Number</p>
-                      <Card.Title as="h4">150GB</Card.Title>
+                      <p className="card-category">Items in Inventory</p>
+                      <Card.Title as="h4">{stats.items}</Card.Title>
                     </div>
                   </Col>
                 </Row>
@@ -58,8 +124,8 @@ function Dashboard() {
                   </Col>
                   <Col xs="7">
                     <div className="numbers">
-                      <p className="card-category">Revenue</p>
-                      <Card.Title as="h4">$ 1,345</Card.Title>
+                      <p className="card-category">Students</p>
+                      <Card.Title as="h4">{stats.students}</Card.Title>
                     </div>
                   </Col>
                 </Row>
@@ -68,7 +134,7 @@ function Dashboard() {
                 <hr></hr>
                 <div className="stats">
                   <i className="far fa-calendar-alt mr-1"></i>
-                  Last day
+                  Registered
                 </div>
               </Card.Footer>
             </Card>
@@ -84,8 +150,8 @@ function Dashboard() {
                   </Col>
                   <Col xs="7">
                     <div className="numbers">
-                      <p className="card-category">Errors</p>
-                      <Card.Title as="h4">23</Card.Title>
+                      <p className="card-category">Borrowed Items</p>
+                      <Card.Title as="h4">{stats.borrowed}</Card.Title>
                     </div>
                   </Col>
                 </Row>
@@ -94,7 +160,7 @@ function Dashboard() {
                 <hr></hr>
                 <div className="stats">
                   <i className="far fa-clock-o mr-1"></i>
-                  In the last hour
+                  Currently borrowed
                 </div>
               </Card.Footer>
             </Card>
@@ -110,8 +176,8 @@ function Dashboard() {
                   </Col>
                   <Col xs="7">
                     <div className="numbers">
-                      <p className="card-category">Followers</p>
-                      <Card.Title as="h4">+45K</Card.Title>
+                      <p className="card-category">Returned Items</p>
+                      <Card.Title as="h4">{stats.returned}</Card.Title>
                     </div>
                   </Col>
                 </Row>
@@ -120,7 +186,7 @@ function Dashboard() {
                 <hr></hr>
                 <div className="stats">
                   <i className="fas fa-redo mr-1"></i>
-                  Update now
+                  Total returned
                 </div>
               </Card.Footer>
             </Card>
@@ -130,33 +196,16 @@ function Dashboard() {
           <Col md="8">
             <Card>
               <Card.Header>
-                <Card.Title as="h4">Users Behavior</Card.Title>
-                <p className="card-category">24 Hours performance</p>
+                <Card.Title as="h4">Borrowing Activity</Card.Title>
+                <p className="card-category">Borrowing over the last 7 days</p>
               </Card.Header>
               <Card.Body>
                 <div className="ct-chart" id="chartHours">
                   <ChartistGraph
-                    data={{
-                      labels: [
-                        "9:00AM",
-                        "12:00AM",
-                        "3:00PM",
-                        "6:00PM",
-                        "9:00PM",
-                        "12:00PM",
-                        "3:00AM",
-                        "6:00AM",
-                      ],
-                      series: [
-                        [287, 385, 490, 492, 554, 586, 698, 695],
-                        [67, 152, 143, 240, 287, 335, 435, 437],
-                        [23, 113, 67, 108, 190, 239, 307, 308],
-                      ],
-                    }}
+                    data={activity}
                     type="Line"
                     options={{
                       low: 0,
-                      high: 800,
                       showArea: false,
                       height: "245px",
                       axisX: {
@@ -188,14 +237,14 @@ function Dashboard() {
               <Card.Footer>
                 <div className="legend">
                   <i className="fas fa-circle text-info"></i>
-                  Open <i className="fas fa-circle text-danger"></i>
-                  Click <i className="fas fa-circle text-warning"></i>
-                  Click Second Time
+                  Borrowed <i className="fas fa-circle text-danger"></i>
+                  Returned <i className="fas fa-circle text-warning"></i>
+                  Overdue
                 </div>
                 <hr></hr>
                 <div className="stats">
                   <i className="fas fa-history"></i>
-                  Updated 3 minutes ago
+                  Live borrowing data
                 </div>
               </Card.Footer>
             </Card>
@@ -203,8 +252,8 @@ function Dashboard() {
           <Col md="4">
             <Card>
               <Card.Header>
-                <Card.Title as="h4">Email Statistics</Card.Title>
-                <p className="card-category">Last Campaign Performance</p>
+                <Card.Title as="h4">Inventory Status</Card.Title>
+                <p className="card-category">Share of items by status</p>
               </Card.Header>
               <Card.Body>
                 <div
@@ -221,14 +270,14 @@ function Dashboard() {
                 </div>
                 <div className="legend">
                   <i className="fas fa-circle text-info"></i>
-                  Open <i className="fas fa-circle text-danger"></i>
-                  Bounce <i className="fas fa-circle text-warning"></i>
-                  Unsubscribe
+                  Available <i className="fas fa-circle text-danger"></i>
+                  Borrowed <i className="fas fa-circle text-warning"></i>
+                  Out of Stock
                 </div>
                 <hr></hr>
                 <div className="stats">
                   <i className="far fa-clock"></i>
-                  Campaign sent 2 days ago
+                  Updated just now
                 </div>
               </Card.Body>
             </Card>
@@ -238,8 +287,8 @@ function Dashboard() {
           <Col md="6">
             <Card>
               <Card.Header>
-                <Card.Title as="h4">2017 Sales</Card.Title>
-                <p className="card-category">All products including Taxes</p>
+                <Card.Title as="h4">Monthly Additions</Card.Title>
+                <p className="card-category">Items added to inventory per month</p>
               </Card.Header>
               <Card.Body>
                 <div className="ct-chart" id="chartActivity">
@@ -317,13 +366,13 @@ function Dashboard() {
               <Card.Footer>
                 <div className="legend">
                   <i className="fas fa-circle text-info"></i>
-                  Tesla Model S <i className="fas fa-circle text-danger"></i>
-                  BMW 5 Series
+                  HVAC Units <i className="fas fa-circle text-danger"></i>
+                  Tools & Equipment
                 </div>
                 <hr></hr>
                 <div className="stats">
                   <i className="fas fa-check"></i>
-                  Data information certified
+                  Live inventory data
                 </div>
               </Card.Footer>
             </Card>
@@ -331,8 +380,8 @@ function Dashboard() {
           <Col md="6">
             <Card className="card-tasks">
               <Card.Header>
-                <Card.Title as="h4">Tasks</Card.Title>
-                <p className="card-category">Backend development</p>
+                <Card.Title as="h4">Recent Activity</Card.Title>
+                <p className="card-category">Latest inventory updates</p>
               </Card.Header>
               <Card.Body>
                 <div className="table-full-width">
@@ -351,8 +400,8 @@ function Dashboard() {
                           </Form.Check>
                         </td>
                         <td>
-                          Sign contract for "What are conference organizers
-                          afraid of?"
+                          A new Split-Type Aircon unit was added to the
+                          inventory
                         </td>
                         <td className="td-actions text-right">
                           <OverlayTrigger
@@ -399,8 +448,8 @@ function Dashboard() {
                           </Form.Check>
                         </td>
                         <td>
-                          Lines From Great Russian Literature? Or E-mails From
-                          My Boss?
+                          Student borrowed a Diagnostic Manifold Gauge for
+                          inspection
                         </td>
                         <td className="td-actions text-right">
                           <OverlayTrigger
@@ -447,9 +496,8 @@ function Dashboard() {
                           </Form.Check>
                         </td>
                         <td>
-                          Flooded: One year later, assessing what was lost and
-                          what was found when a ravaging rain swept through
-                          metro Detroit
+                          Inventory stock level for Copper Tubing was updated
+                          to the latest count
                         </td>
                         <td className="td-actions text-right">
                           <OverlayTrigger
@@ -495,8 +543,8 @@ function Dashboard() {
                           </Form.Check>
                         </td>
                         <td>
-                          Create 4 Invisible User Experiences you Never Knew
-                          About
+                          QR code was regenerated for the Ductless Mini-Split
+                          unit
                         </td>
                         <td className="td-actions text-right">
                           <OverlayTrigger
@@ -541,7 +589,8 @@ function Dashboard() {
                             </Form.Check.Label>
                           </Form.Check>
                         </td>
-                        <td>Read "Following makes Medium better"</td>
+                        <td>                          A Refrigerant Recovery Machine was removed from the
+                          inventory</td>
                         <td className="td-actions text-right">
                           <OverlayTrigger
                             overlay={
@@ -586,7 +635,7 @@ function Dashboard() {
                             </Form.Check.Label>
                           </Form.Check>
                         </td>
-                        <td>Unfollow 5 enemies from twitter</td>
+                        <td>                          New batch of students imported from the master list</td>
                         <td className="td-actions text-right">
                           <OverlayTrigger
                             overlay={

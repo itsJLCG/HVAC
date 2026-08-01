@@ -42,7 +42,7 @@ function Admin() {
   React.useEffect(() => {
     const handler = (e) => {
       const { variant = "success", message = "" } = e.detail || {};
-      const options = { position: toast.POSITION.TOP_RIGHT, hideProgressBar: true };
+      const options = { position: "top-right", hideProgressBar: true };
       if (variant === "danger" || variant === "error") {
         toast.error(message, options);
       } else if (variant === "info" || variant === "secondary") {

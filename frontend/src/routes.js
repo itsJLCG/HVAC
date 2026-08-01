@@ -16,13 +16,14 @@
 
 */
 import Dashboard from "views/Dashboard.js";
-import UserProfile from "views/UserProfile.js";
+import Inventories from "views/Inventories.js";
 import AddingInventory from "views/AddingInventory.js";
 import UpdateInventory from "views/UpdateInventory.js";
 import AllBorrowedInventory from "views/AllBorrowedInventory.js";
 import TestQR from "views/TestQR.js";
 import ScanStudentBarcode from "views/ScanStudentBarcode.js";
 import ManageStudents from "views/ManageStudents.js";
+import Borrowed from "views/Borrowed.js";
 
 const dashboardRoutes = [
   {
@@ -33,10 +34,10 @@ const dashboardRoutes = [
     layout: "/admin"
   },
   {
-    path: "/user",
-    name: "User Profile",
-    icon: "nc-icon nc-circle-09",
-    component: UserProfile,
+    path: "/inventories",
+    name: "Inventories",
+    icon: "nc-icon nc-layers-3",
+    component: Inventories,
     layout: "/admin"
   },
   {
@@ -79,6 +80,13 @@ const dashboardRoutes = [
     name: "Scan Student ID",
     icon: "nc-icon nc-badge",
     component: ScanStudentBarcode,
+    layout: "/admin"
+  },
+  {
+    path: "/borrowed",
+    name: "Borrowed",
+    icon: "nc-icon nc-delivery-fast",
+    component: Borrowed,
     layout: "/admin"
   }
 ];
