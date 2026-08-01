@@ -21,6 +21,7 @@ import AddingInventory from "views/AddingInventory.js";
 import UpdateInventory from "views/UpdateInventory.js";
 import AllBorrowedInventory from "views/AllBorrowedInventory.js";
 import TestQR from "views/TestQR.js";
+import ScanStudentBarcode from "views/ScanStudentBarcode.js";
 
 const dashboardRoutes = [
   {
@@ -63,6 +64,13 @@ const dashboardRoutes = [
     name: "Test QR",
     icon: "nc-icon nc-camera-20",
     component: TestQR,
+    layout: "/admin"
+  },
+  {
+    path: "/scan-student-barcode",
+    name: "Scan Student ID",
+    icon: "nc-icon nc-badge",
+    component: ScanStudentBarcode,
     layout: "/admin"
   }
 ];
