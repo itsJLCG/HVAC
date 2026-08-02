@@ -7,6 +7,8 @@ const API_BASE = process.env.REACT_APP_API_BASE || "";
 function ManageStudents() {
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
+  // { key: "tupt_id" | "full_name", direction: "asc" | "desc" }
+  const [sortConfig, setSortConfig] = useState({ key: "full_name", direction: "asc" });
 
   // Add modal
   const [showAdd, setShowAdd] = useState(false);
@@ -177,6 +179,49 @@ function ManageStudents() {
     );
   });
 
+  // Sort a copy (never mutate state directly) by whichever column/direction
+  // is currently active. localeCompare with numeric:true handles the
+  // "TUPT-23-2" vs "TUPT-23-10" case sensibly for the student number too.
+  const sortedStudents = [...filteredStudents].sort((a, b) => {
+    const { key, direction } = sortConfig;
+    const aVal = (a[key] || "").toString();
+    const bVal = (b[key] || "").toString();
+    const cmp = aVal.localeCompare(bVal, undefined, { numeric: true, sensitivity: "base" });
+    return direction === "asc" ? cmp : -cmp;
+  });
+
+  // Clicking a sortable header toggles asc/desc if it's already the active
+  // column, or switches to that column (starting at asc) otherwise.
+  const toggleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  // Renders a small ▲▼ pair for every sortable header, always visible.
+  // The arrow matching the currently active column/direction is bolded and
+  // full-opacity; the other one is dimmed — so both headers always show
+  // they're sortable, not just the one last clicked.
+  const SortIndicator = ({ columnKey }) => {
+    const isActive = sortConfig.key === columnKey;
+    const activeDirection = isActive ? sortConfig.direction : null;
+
+    const arrowStyle = (direction) => ({
+      opacity: activeDirection === direction ? 1 : 0.3,
+      fontWeight: activeDirection === direction ? 700 : 400,
+    });
+
+    return (
+      <span style={{ marginLeft: 6, fontSize: 11, display: "inline-flex", flexDirection: "column", lineHeight: "9px", verticalAlign: "middle" }}>
+        <span style={arrowStyle("asc")}>▲</span>
+        <span style={arrowStyle("desc")}>▼</span>
+      </span>
+    );
+  };
+
   return (
     <>
       <Container fluid>
@@ -216,20 +261,38 @@ function ManageStudents() {
                 <Table className="table-hover table-striped">
                   <thead>
                     <tr>
-                      <th className="border-0">Student No.</th>
-                      <th className="border-0">Student Name</th>
+                      <th
+                        className="border-0"
+                        role="button"
+                        onClick={() => toggleSort("tupt_id")}
+                        style={{ cursor: "pointer", userSelect: "none" }}
+                        title="Click to sort A-Z / Z-A"
+                      >
+                        Student No.
+                        <SortIndicator columnKey="tupt_id" />
+                      </th>
+                      <th
+                        className="border-0"
+                        role="button"
+                        onClick={() => toggleSort("full_name")}
+                        style={{ cursor: "pointer", userSelect: "none" }}
+                        title="Click to sort A-Z / Z-A"
+                      >
+                        Student Name
+                        <SortIndicator columnKey="full_name" />
+                      </th>
                       <th className="border-0">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredStudents.length === 0 ? (
+                    {sortedStudents.length === 0 ? (
                       <tr>
                         <td colSpan={3} className="text-center">
                           No students found. Click "+ Add Student" or import a file to get started.
                         </td>
                       </tr>
                     ) : (
-                      filteredStudents.map((s) => (
+                      sortedStudents.map((s) => (
                         <tr key={s.id}>
                           <td>{s.tupt_id}</td>
                           <td>{s.full_name}</td>

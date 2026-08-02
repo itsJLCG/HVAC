@@ -24,6 +24,7 @@ import TestQR from "views/TestQR.js";
 import ScanStudentBarcode from "views/ScanStudentBarcode.js";
 import ManageStudents from "views/ManageStudents.js";
 import Borrowed from "views/Borrowed.js";
+import ManageInventory from "views/ManageInventory.js";
 
 const dashboardRoutes = [
   {
@@ -40,20 +41,27 @@ const dashboardRoutes = [
     component: Inventories,
     layout: "/admin"
   },
-  {
+  /*{
     path: "/add-inventory",
     name: "Add Inventory",
     icon: "nc-icon nc-cart-simple",
     component: AddingInventory,
     layout: "/admin"
-  },
+  },*/
   {
+    path: "/manage-inventory",
+    name: "Manage Inventory",
+    icon: "nc-icon nc-refresh-02",
+    component: ManageInventory,
+    layout: "/admin"
+  },
+  /*{
     path: "/update-inventory",
     name: "Update Inventory",
     icon: "nc-icon nc-refresh-02",
     component: UpdateInventory,
     layout: "/admin"
-  },
+  },*/
   {
     path: "/borrowed-inventory",
     name: "Borrowed Inventory",
@@ -68,7 +76,7 @@ const dashboardRoutes = [
     component: ManageStudents,
     layout: "/admin"
   },
-  {
+  /*{
     path: "/test-qr",
     name: "Test QR",
     icon: "nc-icon nc-camera-20",
@@ -81,7 +89,7 @@ const dashboardRoutes = [
     icon: "nc-icon nc-badge",
     component: ScanStudentBarcode,
     layout: "/admin"
-  },
+  }, */
   {
     path: "/borrowed",
     name: "Borrowed",
