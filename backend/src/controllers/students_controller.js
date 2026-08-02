@@ -31,6 +31,38 @@ function getStudentByTuptId(req, res) {
   );
 }
 
+// Search by TUPT ID (exact, case-insensitive) or student name (contains).
+// Returns a ranked list so an exact ID match always comes first.
+function searchStudent(req, res) {
+  const q = String(req.query.q || "").trim();
+  if (!q) return res.status(400).json({ error: "Search query is required" });
+
+  const compactQ = q.replace(/\s+/g, "");
+  const like = `%${q}%`;
+
+  db.all(
+    `SELECT *, CASE
+        WHEN tupt_id = ? COLLATE NOCASE THEN 0
+        WHEN REPLACE(tupt_id, ' ', '') = ? COLLATE NOCASE THEN 1
+        ELSE 2
+      END AS match_rank
+      FROM students
+      WHERE tupt_id = ? COLLATE NOCASE
+         OR REPLACE(tupt_id, ' ', '') = ? COLLATE NOCASE
+         OR full_name LIKE ? COLLATE NOCASE
+      ORDER BY match_rank ASC, full_name ASC
+      LIMIT 10`,
+    [q, compactQ, q, compactQ, like],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ error: "No student found for this TUPT ID or name" });
+      }
+      res.json(rows);
+    }
+  );
+}
+
 function createStudent(req, res) {
   const body = req.body || {};
   const tupt_id = String(body.tupt_id || "").trim();
@@ -180,6 +212,7 @@ module.exports = {
   getAllStudents,
   getStudentById,
   getStudentByTuptId,
+  searchStudent,
   createStudent,
   updateStudent,
   deleteStudent,

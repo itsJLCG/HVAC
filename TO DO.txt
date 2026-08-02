@@ -1,6 +1,6 @@
 Add All Student List ✅
 Add All Item List 
-Fix ID Live Capture 
-Handle Returned Then Back the Stocks
+Fix ID Live Capture ✅
+Handle Returned Then Back the Stocks ✅
 
 Remove unnecessary Pages

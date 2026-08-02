@@ -191,7 +191,16 @@ function Borrowed() {
       })
       .then((data) => handleStudentFound(data))
       .catch(() => {
-        setLookupError("No student found for this TUPT ID.");
+        // Student not in the database — allow borrowing anyway. Fill in the
+        // scanned ID and let the user type the name manually to continue.
+        setForm((s) => ({ ...s, studentId: tuptId }));
+        setManualInput(true);
+        setShowScanner(false);
+        setLookupError("");
+        notify(
+          "warning",
+          `Student ID ${tuptId} is not in the database. The ID was filled in — please enter the student's name to continue borrowing.`
+        );
       })
       .finally(() => setLookingUp(false));
   };

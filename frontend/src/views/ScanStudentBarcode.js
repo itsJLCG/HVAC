@@ -67,11 +67,16 @@ function ScanStudentBarcode() {
   const [capturing, setCapturing] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
 
+  // camera capture stage: "live" (preview) | "captured" (photo taken, awaiting scan)
+  const [stage, setStage] = useState("live");
+  const [capturedImage, setCapturedImage] = useState(null);
+
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadPreview, setUploadPreview] = useState(null);
 
   const [scanned, setScanned] = useState("");
-  const [student, setStudent] = useState(null);
+  const [studentResults, setStudentResults] = useState([]);
+  const [pickedStudent, setPickedStudent] = useState(null);
   const [lookingUp, setLookingUp] = useState(false);
   const [lookupError, setLookupError] = useState("");
   const [decodeError, setDecodeError] = useState("");
@@ -140,9 +145,10 @@ function ScanStudentBarcode() {
       stopCamera();
       return;
     }
+    setCapturedImage(null);
+    setStage("live");
     stopCamera();
     startCamera();
-
   }, [mode, selectedCamera]);
 
   useEffect(() => {
@@ -158,20 +164,27 @@ function ScanStudentBarcode() {
     };
   }, [stopCamera]);
 
-  // ---------- shared: student lookup ----------
-  const lookupStudent = (tuptId) => {
-    if (!tuptId) return;
+  // ---------- shared: student lookup (by TUPT ID or name) ----------
+  const lookupStudent = (value) => {
+    if (!value) return;
     setLookingUp(true);
     setLookupError("");
-    fetch(`${API_BASE}/api/students/by-tupt/${encodeURIComponent(tuptId)}`)
+    setStudentResults([]);
+    setPickedStudent(null);
+    fetch(`${API_BASE}/api/students/search?q=${encodeURIComponent(value)}`)
       .then((r) => {
         if (!r.ok) throw new Error(`not found (${r.status})`);
         return r.json();
       })
-      .then((data) => setStudent(data))
+      .then((data) => {
+        const results = Array.isArray(data) ? data : [];
+        setStudentResults(results);
+        if (results.length) setPickedStudent(results[0]);
+      })
       .catch(() => {
-        setStudent(null);
-        setLookupError("No student found for this TUPT ID.");
+        setStudentResults([]);
+        setPickedStudent(null);
+        setLookupError("No student found for this TUPT ID or name.");
       })
       .finally(() => setLookingUp(false));
   };
@@ -191,8 +204,8 @@ function ScanStudentBarcode() {
     lookupStudent(value);
   };
 
-  // ---------- Capture (from live camera frame) ----------
-  const captureAndScan = async () => {
+  // ---------- Step 1: capture a photo from the live camera ----------
+  const capturePhoto = () => {
     if (!videoRef.current || !streamRef.current) return;
     setDecodeError("");
     setLookupError("");
@@ -204,22 +217,46 @@ function ScanStudentBarcode() {
       canvas.height = video.videoHeight || 480;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+      setCapturedImage(dataUrl);
+      setStage("captured");
+      stopCamera();
+    } catch (err) {
+      console.error("capture error", err);
+      setDecodeError("Failed to capture the frame. Please try again.");
+    } finally {
+      setCapturing(false);
+    }
+  };
 
+  // ---------- Step 2: scan the captured photo ----------
+  const scanCaptured = async () => {
+    if (!capturedImage) return;
+    setDecodeError("");
+    setLookupError("");
+    setCapturing(true);
+    try {
       const reader = getReader();
-      const result = reader.decodeFromCanvas(canvas);
+      const result = await reader.decodeFromImageUrl(capturedImage);
       handleDecodedValue(result.getText(), "camera");
     } catch (err) {
       if (err instanceof NotFoundException) {
         setDecodeError(
-          "No barcode detected in the captured frame. Get closer, improve lighting, and hold it steady, then press Capture again."
+          "No barcode detected in the captured photo. Retake it closer and with better lighting."
         );
       } else {
-        console.error("capture decode error", err);
-        setDecodeError("Something went wrong decoding that frame. Please try again.");
+        console.error("captured decode error", err);
+        setDecodeError("Something went wrong decoding the captured photo. Please try again.");
       }
     } finally {
       setCapturing(false);
     }
+  };
+
+  const retakePhoto = () => {
+    setCapturedImage(null);
+    setStage("live");
+    startCamera();
   };
 
   // ---------- Upload an image / file ----------
@@ -340,70 +377,134 @@ function ScanStudentBarcode() {
                 }}
               >
                 {mode === "scan" ? (
-                  <>
-                    <div
-                      style={{
-                        background: "#fff",
-                        border: "1px solid #eee",
-                        borderRadius: 8,
-                        padding: "8px 12px",
-                        fontWeight: 700,
-                        fontSize: 13,
-                        marginBottom: 12,
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                      }}
-                    >
-                      Make sure the barcode is clear for best results.
-                    </div>
-                    <div
-                      style={{
-                        position: "relative",
-                        width: "100%",
-                        minHeight: 300,
-                        background: "#000",
-                        borderRadius: 8,
-                        overflow: "hidden",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <video
-                        ref={videoRef}
-                        playsInline
-                        muted
-                        style={{ width: "100%", height: "auto", display: running ? "block" : "none" }}
-                      />
-                      {!running && (
-                        <span style={{ color: "#999", fontSize: 13 }}>
-                          {statusMsg || "Camera preview will appear here"}
-                        </span>
-                      )}
-                      {running && (
-                        <button
-                          type="button"
-                          onClick={captureAndScan}
-                          disabled={capturing}
-                          style={{
-                            position: "absolute",
-                            bottom: 14,
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                            background: "#fff",
-                            border: "none",
-                            borderRadius: 8,
-                            padding: "10px 22px",
-                            fontWeight: 700,
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
-                            cursor: "pointer",
-                          }}
-                        >
-                          {capturing ? "Scanning..." : "Capture"}
-                        </button>
-                      )}
-                    </div>
-                    <canvas ref={canvasRef} style={{ display: "none" }} />
-                  </>
+                  stage === "live" ? (
+                    <>
+                      <div
+                        style={{
+                          background: "#fff",
+                          border: "1px solid #eee",
+                          borderRadius: 8,
+                          padding: "8px 12px",
+                          fontWeight: 700,
+                          fontSize: 13,
+                          marginBottom: 12,
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                        }}
+                      >
+                        Position the student ID card in the frame, then press Capture ID.
+                      </div>
+                      <div
+                        style={{
+                          position: "relative",
+                          width: "100%",
+                          minHeight: 300,
+                          background: "#000",
+                          borderRadius: 8,
+                          overflow: "hidden",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <video
+                          ref={videoRef}
+                          playsInline
+                          muted
+                          style={{ width: "100%", height: "auto", display: running ? "block" : "none" }}
+                        />
+                        {!running && (
+                          <span style={{ color: "#999", fontSize: 13 }}>
+                            {statusMsg || "Camera preview will appear here"}
+                          </span>
+                        )}
+                        {running && (
+                          <button
+                            type="button"
+                            onClick={capturePhoto}
+                            disabled={capturing}
+                            style={{
+                              position: "absolute",
+                              bottom: 14,
+                              left: "50%",
+                              transform: "translateX(-50%)",
+                              background: "#fff",
+                              border: "none",
+                              borderRadius: 8,
+                              padding: "10px 22px",
+                              fontWeight: 700,
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {capturing ? "Capturing..." : "Capture ID"}
+                          </button>
+                        )}
+                      </div>
+                      <canvas ref={canvasRef} style={{ display: "none" }} />
+                      <div style={{ marginTop: 16, fontWeight: 700, fontSize: 14 }}>
+                        Available Camera
+                      </div>
+                      <select
+                        className="form-control"
+                        style={{ marginTop: 6 }}
+                        value={selectedCamera || ""}
+                        onChange={(e) => setSelectedCamera(e.target.value)}
+                        disabled={!cameras.length}
+                      >
+                        {cameras.length === 0 && <option value="">No camera detected</option>}
+                        {cameras.map((c) => (
+                          <option key={c.deviceId} value={c.deviceId}>
+                            {c.label || `Camera ${c.deviceId.slice(0, 8)}`}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        style={{
+                          background: "#fff",
+                          border: "1px solid #eee",
+                          borderRadius: 8,
+                          padding: "8px 12px",
+                          fontWeight: 700,
+                          fontSize: 13,
+                          marginBottom: 12,
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                        }}
+                      >
+                        Photo captured. Scan it to read the barcode and match the student.
+                      </div>
+                      <div
+                        style={{
+                          width: "100%",
+                          minHeight: 300,
+                          background: "#000",
+                          borderRadius: 8,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {capturedImage && (
+                          <img
+                            src={capturedImage}
+                            alt="Captured student ID"
+                            style={{ maxWidth: "100%", maxHeight: 300, objectFit: "contain" }}
+                          />
+                        )}
+                      </div>
+                      <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+                        <Button variant="primary" onClick={scanCaptured} disabled={capturing}>
+                          {capturing ? "Scanning..." : "Scan Captured ID"}
+                        </Button>
+                        <Button variant="secondary" onClick={retakePhoto} disabled={capturing}>
+                          Retake Photo
+                        </Button>
+                      </div>
+                    </>
+                  )
                 ) : (
                   <div
                     style={{
@@ -454,26 +555,6 @@ function ScanStudentBarcode() {
                 )}
               </div>
 
-              {mode === "scan" && (
-                <>
-                  <div style={{ marginTop: 16, fontWeight: 700, fontSize: 14 }}>Available Camera</div>
-                  <select
-                    className="form-control"
-                    style={{ marginTop: 6 }}
-                    value={selectedCamera || ""}
-                    onChange={(e) => setSelectedCamera(e.target.value)}
-                    disabled={!cameras.length}
-                  >
-                    {cameras.length === 0 && <option value="">No camera detected</option>}
-                    {cameras.map((c) => (
-                      <option key={c.deviceId} value={c.deviceId}>
-                        {c.label || `Camera ${c.deviceId.slice(0, 8)}`}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )}
-
               {decodeError && (
                 <div
                   style={{
@@ -500,9 +581,13 @@ function ScanStudentBarcode() {
             </Card.Header>
             <Card.Body>
               <div><strong>Last decoded value:</strong></div>
-              <div style={{ wordBreak: "break-all", marginBottom: 12 }}>{scanned || "(none yet)"}</div>
+              <div style={{ wordBreak: "break-all", marginBottom: 12 }}>
+                {scanned || "(none yet)"}
+              </div>
 
-              {lookingUp && <div style={{ color: "#666", marginBottom: 12 }}>Looking up student...</div>}
+              {lookingUp && (
+                <div style={{ color: "#666", marginBottom: 12 }}>Looking up student...</div>
+              )}
 
               {!lookingUp && lookupError && (
                 <div
@@ -519,14 +604,60 @@ function ScanStudentBarcode() {
                 </div>
               )}
 
-              {!lookingUp && student ? (
-                <div style={{ background: "#eaf7ec", border: "1px solid #bfe3c4", borderRadius: 8, padding: "14px 16px" }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#1f7a1f", marginBottom: 4 }}>MATCH FOUND</div>
-                  <div style={{ fontSize: 18, fontWeight: 700 }}>{student.full_name}</div>
-                  <div style={{ marginTop: 6 }}><strong>TUPT ID:</strong> {student.tupt_id}</div>
+              {!lookingUp && !lookupError && pickedStudent && (
+                <div>
+                  <div
+                    style={{
+                      background: "#eaf7ec",
+                      border: "1px solid #bfe3c4",
+                      borderRadius: 8,
+                      padding: "14px 16px",
+                    }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#1f7a1f", marginBottom: 4 }}>
+                      MATCH FOUND
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 700 }}>{pickedStudent.full_name}</div>
+                    <div style={{ marginTop: 6 }}>
+                      <strong>TUPT ID:</strong> {pickedStudent.tupt_id}
+                    </div>
+                  </div>
+
+                  {studentResults.length > 1 && (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#666", marginBottom: 6 }}>
+                        Other possible matches ({studentResults.length - 1})
+                      </div>
+                      {studentResults
+                        .filter((s) => s.id !== pickedStudent.id)
+                        .map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setPickedStudent(s)}
+                            style={{
+                              display: "block",
+                              width: "100%",
+                              textAlign: "left",
+                              background: "#fff",
+                              border: "1px solid #ddd",
+                              borderRadius: 6,
+                              padding: "8px 10px",
+                              marginBottom: 6,
+                              cursor: "pointer",
+                            }}
+                          >
+                            <span style={{ fontWeight: 700 }}>{s.full_name}</span>
+                            <span className="text-muted"> — {s.tupt_id}</span>
+                          </button>
+                        ))}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                !lookingUp && !lookupError && <div>(no student scanned yet)</div>
+              )}
+
+              {!lookingUp && !lookupError && !pickedStudent && (
+                <div>(no student scanned yet)</div>
               )}
             </Card.Body>
           </Card>
