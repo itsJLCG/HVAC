@@ -158,23 +158,42 @@ function initStudentsDb() {
 }
 
 function initBorrowsDb() {
-  db.run(
-    `CREATE TABLE IF NOT EXISTS borrow_records (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      student_name TEXT NOT NULL,
-      student_tupt_id TEXT,
-      item_id INTEGER,
-      item_name TEXT NOT NULL,
-      quantity INTEGER DEFAULT 1,
-      borrowed_date TEXT NOT NULL,
-      due_date TEXT,
-      status TEXT DEFAULT 'Borrowed',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`,
-    (err) => {
-      if (err) console.error("Failed to create borrow_records table:", err.message);
+  db.all("PRAGMA table_info(borrow_records)", (err, cols) => {
+    if (err || !cols || cols.length === 0) {
+      db.run(
+        `CREATE TABLE IF NOT EXISTS borrow_records (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          student_name TEXT NOT NULL,
+          student_tupt_id TEXT,
+          item_id INTEGER,
+          item_name TEXT NOT NULL,
+          quantity INTEGER DEFAULT 1,
+          borrowed_date TEXT NOT NULL,
+          due_date TEXT,
+          status TEXT DEFAULT 'Borrowed',
+          returned_date TEXT,
+          group_id TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`,
+        (createErr) => {
+          if (createErr) console.error("Failed to create borrow_records table:", createErr.message);
+        }
+      );
+      return;
     }
-  );
+
+    const colNames = cols.map((c) => c.name);
+    if (!colNames.includes("returned_date")) {
+      db.run("ALTER TABLE borrow_records ADD COLUMN returned_date TEXT", (e) => {
+        if (e) console.error("Failed to add returned_date column:", e.message);
+      });
+    }
+    if (!colNames.includes("group_id")) {
+      db.run("ALTER TABLE borrow_records ADD COLUMN group_id TEXT", (e) => {
+        if (e) console.error("Failed to add group_id column:", e.message);
+      });
+    }
+  });
 }
 
 module.exports = { db, DB_PATH, initDb, buildQrValue, initStudentsDb, initBorrowsDb };
