@@ -1,0 +1,154 @@
+.borrow-page{
+    background:#f7f8fb;
+    min-height:100vh;
+    padding:30px;
+}
+
+.borrow-header{
+    margin-bottom:30px;
+}
+
+.borrow-title{
+    font-size:32px;
+    font-weight:700;
+    color:#800000;
+}
+
+.borrow-subtitle{
+    color:#777;
+    margin-top:8px;
+}
+
+.borrow-section{
+    background:#fff;
+    border-radius:16px;
+    padding:25px;
+    margin-bottom:25px;
+
+    box-shadow:
+    0 8px 24px rgba(0,0,0,.05);
+}
+
+.borrow-section-title{
+    font-size:18px;
+    font-weight:600;
+    color:#800000;
+    margin-bottom:20px;
+
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.borrow-summary-card{
+
+    border:none;
+    border-radius:15px;
+    padding:22px;
+
+    box-shadow:
+    0 6px 18px rgba(0,0,0,.05);
+
+    transition:.2s;
+}
+
+.borrow-summary-card:hover{
+
+    transform:translateY(-3px);
+
+}
+
+.borrow-summary-title{
+
+    font-size:13px;
+    color:#777;
+}
+
+.borrow-summary-value{
+
+    font-size:28px;
+    font-weight:700;
+    color:#800000;
+}
+
+.borrow-actions{
+
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+}
+
+.borrow-table{
+
+    border-radius:12px;
+    overflow:hidden;
+}
+
+.borrow-table thead{
+
+    background:#800000;
+    color:white;
+}
+
+.borrow-table td{
+
+    vertical-align:middle;
+}
+
+.borrow-submit{
+
+    background:#800000;
+    border:none;
+
+    padding:12px 45px;
+
+    border-radius:10px;
+
+    font-weight:600;
+}
+
+.borrow-submit:hover{
+
+    background:#650000;
+}
+
+.borrow-outline{
+
+    border:2px solid #800000;
+
+    color:#800000;
+
+    background:white;
+}
+
+.borrow-outline:hover{
+
+    background:#800000;
+
+    color:white;
+}
+
+.borrow-form .form-control{
+
+    border-radius:10px;
+
+    min-height:48px;
+
+    border:1px solid #ddd;
+}
+
+.borrow-form label{
+
+    font-weight:600;
+
+    margin-bottom:8px;
+}
+
+.borrow-divider{
+
+    height:1px;
+
+    background:#eee;
+
+    margin:30px 0;
+}
