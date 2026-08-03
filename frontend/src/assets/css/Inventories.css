@@ -4,160 +4,110 @@
    INVENTORY PAGE
 ================================================== */
 
-.tupt-inventory{
-    min-height:100vh;
-    padding-bottom:40px;
+.tupt-inventory {
+    min-height: 100vh;
+    padding-bottom: 40px;
 }
 
 /* ==================================================
    HEADER
 ================================================== */
 
-.inventory-header{
-
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-
-    margin:10px 0 35px;
+.inventory-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px 0 35px;
 }
 
-.inventory-heading{
-
-    font-family:"Rajdhani",sans-serif;
-    font-size:2.5rem;
-    font-weight:700;
-    letter-spacing:.03em;
-    text-transform:uppercase;
-
-    color:var(--maroon-dark);
-
-    margin-bottom:4px;
+.inventory-heading {
+    font-family: "Rajdhani", sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    color: var(--maroon-dark);
+    margin-bottom: 4px;
 }
 
-.inventory-subheading{
-
-    font-family:"Inter",sans-serif;
-    font-size:.95rem;
-    color:#8A7A6B;
-
-    margin:0;
+.inventory-subheading {
+    font-family: "Inter", sans-serif;
+    font-size: .95rem;
+    color: #8A7A6B;
+    margin: 0;
 }
 
 /* ==================================================
    TOTAL CARD
 ================================================== */
 
-.inventory-count{
-
-    background:#fff;
-
-    border:1px solid var(--line);
-
-    border-radius:14px;
-
-    padding:18px 28px;
-
-    min-width:170px;
-
-    text-align:center;
-
-    box-shadow:0 4px 14px rgba(74,6,16,.08);
+.inventory-count {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 28px;
+    min-width: 170px;
+    text-align: center;
+    box-shadow: 0 4px 14px rgba(74, 6, 16, .08);
 }
 
-.inventory-count span{
-
-    display:block;
-
-    font-size:.75rem;
-
-    text-transform:uppercase;
-
-    letter-spacing:.08em;
-
-    color:#8A7A6B;
+.inventory-count span {
+    display: block;
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #8A7A6B;
 }
 
-.inventory-count h3{
-
-    margin:6px 0 0;
-
-    font-family:"Rajdhani",sans-serif;
-
-    font-size:2.2rem;
-
-    color:var(--maroon);
+.inventory-count h3 {
+    margin: 6px 0 0;
+    font-family: "Rajdhani", sans-serif;
+    font-size: 2.2rem;
+    color: var(--maroon);
 }
 
 /* ==================================================
    INVENTORY CARD
 ================================================== */
 
-.inventory-card{
-
-    border:none;
-
-    border-radius:18px;
-
-    overflow:hidden;
-
-    background:#fff;
-
-    transition:
-        transform .25s ease,
-        box-shadow .25s ease;
-
-    box-shadow:
-        0 6px 18px rgba(16,36,62,.08);
-
+.inventory-card {
+    border: none;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #fff;
+    transition: transform .25s ease, box-shadow .25s ease;
+    box-shadow: 0 6px 18px rgba(16, 36, 62, .08);
     height: 90%;
 }
 
-.inventory-card:hover{
-
-    transform:translateY(-6px);
-
-    box-shadow:
-        0 18px 35px rgba(16,36,62,.14);
+.inventory-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 18px 35px rgba(16, 36, 62, .14);
 }
 
 /* ==================================================
    IMAGE
 ================================================== */
 
-.inventory-image{
-
-    position:relative;
-
-    height:230px;
-
-    background:#fff;
-
-    display:flex;
-
-    justify-content:center;
-
-    align-items:center;
-
-    padding:24px;
-
-    border-bottom:4px solid var(--gold);
+.inventory-image {
+    position: relative;
+    height: 230px;
+    background: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    border-bottom: 4px solid var(--gold);
 }
 
-.inventory-image::before{
-
-    content:"";
-
-    position:absolute;
-
-    top:0;
-    left:0;
-
-    width:100%;
-    height:6px;
-
-    background:
-    linear-gradient(
+.inventory-image::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(
         90deg,
         var(--maroon) 0%,
         var(--maroon) 33%,
@@ -168,260 +118,185 @@
     );
 }
 
-.inventory-image img{
-
-    max-width:100%;
-
-    max-height:170px;
-
-    object-fit:contain;
-
-    transition:.3s;
+.inventory-image img {
+    max-width: 100%;
+    max-height: 170px;
+    object-fit: contain;
+    transition: .3s;
 }
 
-.inventory-card:hover .inventory-image img{
-
-    transform:scale(1.05);
+.inventory-card:hover .inventory-image img {
+    transform: scale(1.05);
 }
 
 /* ==================================================
    BODY
 ================================================== */
 
-.inventory-card .card-body{
-
-    padding:22px;
+.inventory-card .card-body {
+    padding: 22px;
 }
 
 /* ==================================================
    TITLE
 ================================================== */
 
-.inventory-title{
-
-    font-family:"Rajdhani",sans-serif;
-
-    font-size:1.55rem;
-
-    font-weight:700;
-
-    color:var(--maroon-dark);
-
-    margin-bottom:2px;
+.inventory-title {
+    font-family: "Rajdhani", sans-serif;
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--maroon-dark);
+    margin-bottom: 2px;
 }
 
 /* ==================================================
    DESCRIPTION
 ================================================== */
 
-.inventory-description{
-
-    font-family:"Inter",sans-serif;
-
-    color:#6F6256;
-
-    font-size:.92rem;
-
-    line-height:1.65;
-
-    margin-bottom:16px;
+.inventory-description {
+    font-family: "Inter", sans-serif;
+    color: #6F6256;
+    font-size: .92rem;
+    line-height: 1.65;
+    margin-bottom: 16px;
 }
 
 /* ==================================================
    DIVIDER
 ================================================== */
 
-.inventory-divider{
-
-    border-top:1px solid var(--line);
-
-    margin-bottom:10px;
+.inventory-divider {
+    border-top: 1px solid var(--line);
+    margin-bottom: 10px;
 }
 
 /* ==================================================
    BOTTOM INFO
 ================================================== */
 
-.inventory-bottom{
-
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:flex-end;
+.inventory-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
 }
 
-.inventory-label{
-
-    display:block;
-
-    font-size:.72rem;
-
-    font-weight:600;
-
-    text-transform:uppercase;
-
-    letter-spacing:.08em;
-
-    color:#8A7A6B;
-
+.inventory-label {
+    display: block;
+    font-size: .72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #8A7A6B;
 }
 
-.inventory-value{
-
-    font-family:"Rajdhani",sans-serif;
-
-    font-size:2rem;
-
-    font-weight:700;
-
-    color:var(--navy);
-
-    line-height:1;
+.inventory-value {
+    font-family: "Rajdhani", sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1;
 }
 
 /* ==================================================
    STATUS
 ================================================== */
 
-.status-pill{
-
-    display:inline-flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    padding:8px 16px;
-
-    border-radius:50px;
-
-    font-size:.82rem;
-
-    font-weight:600;
-
-    letter-spacing:.02em;
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: 50px;
+    font-size: .82rem;
+    font-weight: 600;
+    letter-spacing: .02em;
 }
 
-.status-pill.available{
-
-    background:#EAF7EF;
-
-    color:#2E7D32;
-
-    border:1px solid #B8DEC3;
+.status-pill.available {
+    background: #EAF7EF;
+    color: #2E7D32;
+    border: 1px solid #B8DEC3;
 }
 
-.status-pill.unavailable{
-
-    background:#F8E6E8;
-
-    color:var(--maroon);
-
-    border:1px solid #E6B6BE;
+.status-pill.unavailable {
+    background: #F8E6E8;
+    color: var(--maroon);
+    border: 1px solid #E6B6BE;
 }
 
 /* ==================================================
    LOADING
 ================================================== */
 
-.inventory-loading{
-
-    display:flex;
-
-    justify-content:center;
-
-    align-items:center;
-
-    padding:80px 0;
+.inventory-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 80px 0;
 }
 
-.inventory-loading .spinner-border{
-
-    color:var(--gold);
+.inventory-loading .spinner-border {
+    color: var(--gold);
 }
 
 /* ==================================================
    ALERT
 ================================================== */
 
-.inventory-alert{
-
-    background:#F6E3E6;
-
-    border:none;
-
-    color:var(--maroon);
-
-    border-radius:12px;
-
-    padding:18px;
+.inventory-alert {
+    background: #F6E3E6;
+    border: none;
+    color: var(--maroon);
+    border-radius: 12px;
+    padding: 18px;
 }
 
 /* ==================================================
    RESPONSIVE
 ================================================== */
 
-@media(max-width:991px){
+@media (max-width: 991px) {
 
-.inventory-header{
+    .inventory-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
 
-    flex-direction:column;
+    .inventory-count {
+        width: 100%;
+    }
 
-    align-items:flex-start;
-
-    gap:20px;
+    .inventory-title,
+    .inventory-description {
+        min-height: auto;
+    }
 }
 
-.inventory-count{
+@media (max-width: 576px) {
 
-    width:100%;
-}
+    .inventory-heading {
+        font-size: 2rem;
+    }
 
-.inventory-title{
+    .inventory-image {
+        height: 180px;
+    }
 
-    min-height:auto;
-}
+    .inventory-image img {
+        max-height: 140px;
+    }
 
-.inventory-description{
+    .inventory-card .card-body {
+        padding: 18px;
+    }
 
-    min-height:auto;
-}
+    .inventory-value {
+        font-size: 1.7rem;
+    }
 
-}
-
-@media(max-width:576px){
-
-.inventory-heading{
-
-    font-size:2rem;
-}
-
-.inventory-image{
-    
-    height:180px;
-}
-
-.inventory-image img{
-
-    max-height:140px;
-}
-
-.inventory-card .card-body{
-
-    padding:18px;
-}
-
-.inventory-value{
-
-    font-size:1.7rem;
-}
-
-.status-pill{
-
-    font-size:.75rem;
-
-    padding:7px 12px;
-}
-
+    .status-pill {
+        font-size: .75rem;
+        padding: 7px 12px;
+    }
 }
