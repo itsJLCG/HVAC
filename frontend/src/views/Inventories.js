@@ -1,64 +1,121 @@
 import React, { useState, useEffect } from "react";
-import { Card, Container, Row, Col, Badge, Spinner, Alert } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Spinner,
+  Alert,
+} from "react-bootstrap";
+
+import "../assets/css/Inventories.css";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "";
 
 function Inventories() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetch(`${API_BASE}/api/items`)
-      .then((r) => r.json())
+      .then((res) => res.json())
       .then((data) => setItems(data))
-      .catch((err) => setError("Failed to load inventories"))
+      .catch(() => setError("Failed to load inventories."))
       .finally(() => setLoading(false));
   }, []);
 
   return (
-    <>
+    <div className="tupt-dashboard tupt-inventory">
+      <div className="tupt-ribbon"></div>
       <Container fluid>
-        <h3 className="mb-4">Inventories</h3>
+        <div className="inventory-header">
+          <div>
+            <h2 className="inventory-heading">
+              Inventory
+            </h2>
+            <p className="inventory-subheading">
+              View and monitor all available equipment,
+              devices, and borrowing resources.
+            </p>
+          </div>
+          <div className="inventory-count">
+            <span>Total Assets</span>
+            <h3>{items.length}</h3>
+          </div>
+        </div>
+
+        {/* Loading */}
         {loading && (
-          <div className="text-center py-5">
-            <Spinner animation="border" variant="info" />
+          <div className="inventory-loading">
+            <Spinner animation="border" />
           </div>
         )}
-        {error && <Alert variant="danger">{error}</Alert>}
+        {/* Error */}
+        {!loading && error && (
+          <Alert className="inventory-alert">
+
+            {error}
+
+          </Alert>
+        )}
+        {/* Cards */}
         {!loading && !error && (
           <Row>
             {items.map((item) => (
-              <Col lg="3" md="4" sm="6" xs="12" key={item.id} className="mb-4">
-                <Card className="h-100">
-                  <Card.Img
-                    variant="top"
-                    src={item.image_url || "/images/default-avatar.png"}
-                    alt={item.name}
-                    style={{ height: "200px", objectFit: "contain", background: "#f5f5f5", padding: "10px" }}
-                    onError={(e) => {
-                      e.currentTarget.src = "/images/default-avatar.png";
-                    }}
-                  />
-                  <Card.Body className="d-flex flex-column">
-                    <Card.Title className="font-weight-bold text-dark text-truncate" style={{ fontSize: "1.35rem" }}>
+              <Col
+                xl={3}
+                lg={4}
+                md={6}
+                sm={6}
+                xs={12}
+                key={item.id}
+              >
+                <Card className="inventory-card">
+                  {/* Image */}
+                  <div className="inventory-image">
+                    <img
+                      src={
+                        item.image_url ||
+                        "/images/default-avatar.png"
+                      }
+                      alt={item.name}
+                      onError={(e) => {
+                        e.target.src =
+                          "/images/default-avatar.png";
+                      }}
+                    />
+                  </div>
+                  {/* Body */}
+                  <Card.Body>
+                    <h5 className="inventory-title">
                       {item.name}
-                    </Card.Title>
-                    <Card.Text className="flex-grow-1 text-muted mb-2">
-                      {item.description || "No description"}
-                    </Card.Text>
-                    <div className="mt-auto">
-                      <Badge
-                        pill
-                        className={`px-3 py-2 font-weight-bold ${
-                          item.quantity > 0
-                            ? "badge-info text-white"
-                            : "badge-danger"
-                        }`}
-                        style={{ fontSize: "1.05rem" }}
-                      >
-                        {item.quantity > 0 ? `Quantity: ${item.quantity}` : "Out of Stock"}
-                      </Badge>
+                    </h5>
+                    <p className="inventory-description">
+                      {item.description ||
+                        "No description available."}
+                    </p>
+                    <div className="inventory-divider"></div>
+                    <div className="inventory-bottom">
+                      <div>
+                        <span className="inventory-label">
+                          Quantity
+                        </span>
+                        <div className="inventory-value">
+                          {item.quantity}
+                        </div>
+                      </div>
+                      <div>
+                        {item.quantity > 0 ? (
+                          <span className="status-pill available">
+                            ● Available
+                          </span>
+                        ) : (
+                          <span className="status-pill unavailable">
+                            ● Out of Stock
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </Card.Body>
                 </Card>
@@ -66,11 +123,22 @@ function Inventories() {
             ))}
           </Row>
         )}
-        {!loading && !error && items.length === 0 && (
-          <Alert variant="info">No inventory items yet.</Alert>
-        )}
+
+        {!loading &&
+          !error &&
+          items.length === 0 && (
+
+            <Alert className="inventory-alert">
+
+              No inventory items found.
+
+            </Alert>
+
+          )}
+
       </Container>
-    </>
+
+    </div>
   );
 }
 
