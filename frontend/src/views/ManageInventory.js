@@ -43,6 +43,7 @@ function ManageInventory() {
   // --- Shared alert/notification state ---
   const [alert, setAlert] = useState({ show: false, variant: "success", message: "" });
   const [notification, setNotification] = useState({ show: false, title: "", message: "" });
+  const [searchTerm, setSearchTerm] = useState("");
 
   const notify = (variant, message) => {
     setNotification({ show: true, title: "", message });
@@ -251,6 +252,16 @@ function ManageInventory() {
     }
   };
 
+    const filteredItems = items.filter(item => {
+    const term = searchTerm.toLowerCase();
+
+    return (
+      item.name?.toLowerCase().includes(term) ||
+      item.description?.toLowerCase().includes(term) ||
+      String(item.quantity).includes(term)
+    );
+  });
+
 return (
   <>
     <div className="tupt-dashboard manage-inventory-page">
@@ -360,6 +371,8 @@ return (
                 type="text"
                 className="search-input"
                 placeholder="Search inventory..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </Card.Body>
@@ -397,18 +410,20 @@ return (
                 </thead>
 
                 <tbody>
-                  {items.length === 0 ? (
+                  {filteredItems.length === 0 ? (
                     <tr>
                       <td
                         colSpan="6"
                         className="text-center py-5"
                       >
-                        No inventory items found.
+                        {searchTerm
+                          ? `No inventory found for "${searchTerm}".`
+                          : "No inventory items found."}
                       </td>
                     </tr>
                   ) : (
-                    items.map(item => (
-                      <tr key={item.id}>
+                      filteredItems.map(item => (
+                        <tr key={item.id}>
                         <td>
                           {item.image_url ? (
                             <img

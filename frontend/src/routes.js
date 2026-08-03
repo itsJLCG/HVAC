@@ -91,8 +91,8 @@ const dashboardRoutes = [
     layout: "/admin"
   }, */
   {
-    path: "/borrowed",
-    name: "Borrowed",
+    path: "/borrowing",
+    name: "Borrowing System",
     icon: "nc-icon nc-delivery-fast",
     component: Borrowed,
     layout: "/admin"
