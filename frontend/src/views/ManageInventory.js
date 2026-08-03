@@ -1,8 +1,19 @@
 // frontend > src > views > ManageInventory.js
 import React, { useState, useEffect, useRef } from "react";
 import QRCode from "react-qr-code";
-import { Card, Container, Row, Col, Button, Table, Alert } from "react-bootstrap";
-import NotificationModal from "components/NotificationModal/NotificationModal";
+import {
+  Card,
+  Container,
+  Row,
+  Col,
+  Button,
+  Table,
+  Alert,
+  OverlayTrigger,
+  Tooltip
+} from "react-bootstrap";import NotificationModal from "components/NotificationModal/NotificationModal";
+
+import "../assets/css/ManageInventory.css";
 
 // Leave empty by default so fetch("/api/...") goes to the CRA proxy (package.json `proxy`).
 // Set `REACT_APP_API_BASE` to a full URL if you need to override in production.
@@ -240,143 +251,410 @@ function ManageInventory() {
     }
   };
 
-  return (
-    <>
+return (
+  <>
+    <div className="tupt-dashboard manage-inventory-page">
+      <div className="tupt-ribbon"></div>
+
       <Container fluid>
         {alert.show && (
-          <Row>
-            <Col md="12">
-              <Alert variant={alert.variant}>{alert.message}</Alert>
-            </Col>
-          </Row>
+          <Alert
+            className={`manage-alert ${
+              alert.variant === "danger"
+                ? "alert-danger"
+                : "alert-success"
+            }`}
+          >
+            {alert.message}
+          </Alert>
         )}
-        <Row>
-          <Col md="12">
-            <Card className="strpied-tabled-with-hover">
-              <Card.Header className="d-flex align-items-center justify-content-between">
-                <div>
-                  <Card.Title as="h4">Manage Inventory</Card.Title>
-                  <p className="card-category">Add, edit, delete, and print QR codes for inventory items</p>
+
+        {/* ===========================================
+            Header
+        =========================================== */}
+
+        <div className="manage-header">
+          <div>
+            <h2 className="manage-title">Manage Inventory</h2>
+
+            <p className="manage-subtitle">
+              Manage university equipment, laboratory assets,
+              and inventory records.
+            </p>
+          </div>
+
+          <Button
+            className="btn-add-inventory"
+            onClick={handleShowAdd}
+          >
+            <i className="nc-icon nc-simple-add"></i>
+            Add Inventory
+          </Button>
+        </div>
+
+        {/* ===========================================
+            Statistics
+        =========================================== */}
+
+        <Row className="mb-4">
+          <Col lg="4" md="6">
+            <Card className="summary-card">
+              <Card.Body>
+                <div className="summary-icon maroon">
+                  <i className="nc-icon nc-box"></i>
                 </div>
+
                 <div>
-                  <Button variant="primary" className="btn-fill" onClick={handleShowAdd}>
-                    + Add Inventory
-                  </Button>
+                  <span>Total Items</span>
+                  <h3>{items.length}</h3>
                 </div>
-              </Card.Header>
-              <Card.Body className="table-full-width table-responsive px-0">
-                <Table className="table-hover table-striped">
-                  <thead>
-                    <tr>
-                      <th className="border-0">Image</th>
-                      <th className="border-0">QR</th>
-                      <th className="border-0">Item</th>
-                      <th className="border-0">Quantity</th>
-                      <th className="border-0">Description</th>
-                      <th className="border-0">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="text-center">
-                          No inventory items yet. Click "+ Add Inventory" to create one.
-                        </td>
-                      </tr>
-                    ) : (
-                      items.map((it, idx) => (
-                        <tr key={it.id ?? idx}>
-                          <td style={{ width: 80 }}>
-                            {it.image_url ? (
-                              <img src={it.image_url} alt={it.name} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 4 }} />
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                          <td style={{ width: 80 }}>
-                            {it.name || it.qr_value ? (
-                              typeof QRCode !== "undefined" && QRCode ? (
-                                <div ref={(el) => (qrRefs.current[it.id] = el)} style={{ width: 64, height: 64 }}>
-                                  <QRCode value={it.name || it.qr_value} size={64} />
-                                </div>
-                              ) : (
-                                <span>QR unavailable</span>
-                              )
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                          <td>{it.name}</td>
-                          <td>{it.quantity}</td>
-                          <td>{it.description}</td>
-                          <td style={{ minWidth: 220 }}>
-                            <Button size="sm" variant="info" onClick={() => startEdit(it)}>
-                              Edit
-                            </Button>{" "}
-                            <Button size="sm" variant="danger" onClick={() => handleDelete(it)}>
-                              Delete
-                            </Button>{" "}
-                            <Button size="sm" variant="secondary" onClick={() => handlePrint(it)}>
-                              Print QR
-                            </Button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </Table>
+              </Card.Body>
+            </Card>
+          </Col>
+
+          <Col lg="4" md="6">
+            <Card className="summary-card">
+              <Card.Body>
+                <div className="summary-icon gold">
+                  <i className="nc-icon nc-check-2"></i>
+                </div>
+
+                <div>
+                  <span>Available</span>
+                  <h3>
+                    {items.filter(item => item.quantity > 0).length}
+                  </h3>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+
+          <Col lg="4" md="6">
+            <Card className="summary-card">
+              <Card.Body>
+                <div className="summary-icon navy">
+                  <i className="nc-icon nc-simple-remove"></i>
+                </div>
+
+                <div>
+                  <span>Out of Stock</span>
+                  <h3>
+                    {items.filter(item => item.quantity <= 0).length}
+                  </h3>
+                </div>
               </Card.Body>
             </Card>
           </Col>
         </Row>
+
+                {/* ===========================================
+            Search
+        =========================================== */}
+
+        <Card className="search-card mb-4">
+          <Card.Body>
+            <div className="search-wrapper">
+              <i className="nc-icon nc-zoom-split"></i>
+
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search inventory..."
+              />
+            </div>
+          </Card.Body>
+        </Card>
+
+        {/* ===========================================
+            Inventory Table
+        =========================================== */}
+
+        <Card className="inventory-table-card">
+          <Card.Header>
+            <div>
+              <Card.Title as="h4">
+                Inventory Records
+              </Card.Title>
+
+              <p className="card-category">
+                View, update, print QR codes, and manage inventory items.
+              </p>
+            </div>
+          </Card.Header>
+
+          <Card.Body className="p-0">
+            <div className="table-responsive">
+              <Table className="inventory-table">
+                <thead>
+                  <tr>
+                    <th>Image</th>
+                    <th>QR Code</th>
+                    <th>Item Name</th>
+                    <th>Quantity</th>
+                    <th>Description</th>
+                    <th className="text-center">Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {items.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan="6"
+                        className="text-center py-5"
+                      >
+                        No inventory items found.
+                      </td>
+                    </tr>
+                  ) : (
+                    items.map(item => (
+                      <tr key={item.id}>
+                        <td>
+                          {item.image_url ? (
+                            <img
+                              src={item.image_url}
+                              alt={item.name}
+                              className="table-image"
+                            />
+                          ) : (
+                            <div className="table-image placeholder">
+                              <i className="nc-icon nc-image"></i>
+                            </div>
+                          )}
+                        </td>
+
+                        <td>
+                          <div
+                            ref={el => (qrRefs.current[item.id] = el)}
+                          >
+                            <QRCode
+                              value={item.name || item.qr_value}
+                              size={60}
+                            />
+                          </div>
+                        </td>
+
+                        <td>
+                          <strong>{item.name}</strong>
+                        </td>
+
+                        <td>
+                          <span
+                            className={
+                              item.quantity > 0
+                                ? "status-badge available"
+                                : "status-badge unavailable"
+                            }
+                          >
+                            {item.quantity}
+                          </span>
+                        </td>
+
+                        <td>{item.description || "-"}</td>
+
+                        <td className="text-center">
+                          <div className="action-buttons">
+
+                            <OverlayTrigger
+                              placement="top"
+                              overlay={<Tooltip>Edit Inventory</Tooltip>}
+                            >
+                              <Button
+                                size="sm"
+                                className="action-btn edit"
+                                onClick={() => startEdit(item)}
+                              >
+                                <i className="fas fa-pen"></i>
+                              </Button>
+                            </OverlayTrigger>
+
+                            <OverlayTrigger
+                              placement="top"
+                              overlay={<Tooltip>Print QR Code</Tooltip>}
+                            >
+                              <Button
+                                size="sm"
+                                className="action-btn print"
+                                onClick={() => handlePrint(item)}
+                              >
+                                <i className="fas fa-qrcode"></i>
+                              </Button>
+                            </OverlayTrigger>
+
+                            <OverlayTrigger
+                              placement="top"
+                              overlay={<Tooltip>Delete Inventory</Tooltip>}
+                            >
+                              <Button
+                                size="sm"
+                                className="action-btn delete"
+                                onClick={() => handleDelete(item)}
+                              >
+                                <i className="fas fa-trash-alt"></i>
+                              </Button>
+                            </OverlayTrigger>
+
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </Table>
+            </div>
+          </Card.Body>
+        </Card>
+
+        <NotificationModal
+          show={notification.show}
+          onClose={() =>
+            setNotification(prev => ({
+              ...prev,
+              show: false
+            }))
+          }
+          title="Notification"
+          message={notification.message}
+        />
       </Container>
 
-      <NotificationModal
-        show={notification.show}
-        onClose={() => setNotification((n) => ({ ...n, show: false }))}
-        title={"Notification"}
-        message={notification.message}
-      />
+      {/* ===========================================
+          Add Inventory Modal
+      =========================================== */}
 
-      {/* Add modal */}
       {showAdd && (
         <>
           <div className="modal-backdrop show" />
-          <div className="modal d-block" tabIndex="-1" role="dialog">
-            <div className="modal-dialog modal-dialog-centered" role="document">
+
+          <div
+            className="modal d-block manage-modal"
+            tabIndex="-1"
+            role="dialog"
+          >
+            <div
+              className="modal-dialog modal-lg modal-dialog-centered"
+              role="document"
+            >
               <div className="modal-content">
                 <form onSubmit={handleAdd}>
                   <div className="modal-header">
-                    <h5 className="modal-title">Add Inventory Item</h5>
-                    <button type="button" className="btn-close" aria-label="Close" onClick={handleCloseAdd} />
+                    <div>
+                      <h4 className="modal-title">
+                        Add Inventory Item
+                      </h4>
+
+                      <p className="modal-subtitle">
+                        Register a new equipment or laboratory asset.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn-close"
+                      onClick={handleCloseAdd}
+                    />
                   </div>
+
                   <div className="modal-body">
-                    <div className="form-group mb-2">
-                      <label>Item Name</label>
-                      <input className="form-control" name="name" value={addForm.name} onChange={handleAddChange} required />
-                    </div>
-                    <div className="form-group mb-2">
-                      <label>Quantity</label>
-                      <input className="form-control" name="quantity" value={addForm.quantity} onChange={handleAddChange} type="number" />
-                    </div>
-                    <div className="form-group mb-2">
-                      <label>Description</label>
-                      <textarea className="form-control" rows={3} name="description" value={addForm.description} onChange={handleAddChange} />
-                    </div>
-                    <div className="form-group mb-2">
-                      <label>Image</label>
-                      <input type="file" accept="image/*" className="form-control" onChange={handleAddFileChange} />
-                      {addPreviewUrl && <img src={addPreviewUrl} alt="preview" style={{ marginTop: 8, width: 120, height: 80, objectFit: "cover" }} />}
-                    </div>
-                    {/* QR preview removed — QR uses the item name and shows in the table after add */}
+                    <Row>
+                      {/* Left Column */}
+
+                      <Col lg={8}>
+                        <div className="form-group">
+                          <label>Item Name</label>
+
+                          <input
+                            type="text"
+                            className="form-control"
+                            name="name"
+                            value={addForm.name}
+                            onChange={handleAddChange}
+                            placeholder="Enter item name"
+                            required
+                          />
+                        </div>
+
+                        <div className="form-group mt-3">
+                          <label>Description</label>
+
+                          <textarea
+                            rows="5"
+                            className="form-control"
+                            name="description"
+                            value={addForm.description}
+                            onChange={handleAddChange}
+                            placeholder="Enter item description"
+                          />
+                        </div>
+
+                        <div className="form-group mt-3">
+                          <label>Quantity</label>
+
+                          <input
+                            type="number"
+                            min="0"
+                            className="form-control"
+                            name="quantity"
+                            value={addForm.quantity}
+                            onChange={handleAddChange}
+                          />
+                        </div>
+                      </Col>
+
+                      {/* Right Column */}
+
+                      <Col lg={4}>
+                        <div className="image-upload-card">
+                          <div className="image-preview">
+                            {addPreviewUrl ? (
+                              <img
+                                src={addPreviewUrl}
+                                alt="Preview"
+                              />
+                            ) : (
+                              <div className="upload-placeholder">
+                                <i className="nc-icon nc-image"></i>
+
+                                <span>No Image</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <label className="upload-btn">
+                            Choose Image
+
+                            <input
+                              hidden
+                              type="file"
+                              accept="image/*"
+                              onChange={handleAddFileChange}
+                            />
+                          </label>
+
+                          <small className="text-muted">
+                            JPG, PNG or JPEG
+                          </small>
+                        </div>
+                      </Col>
+                    </Row>
                   </div>
+
                   <div className="modal-footer">
-                    <button type="button" className="btn btn-secondary" onClick={handleCloseAdd}>
+                    <Button
+                      variant="light"
+                      className="btn-cancel"
+                      onClick={handleCloseAdd}
+                    >
                       Cancel
-                    </button>
-                    <button type="submit" className="btn btn-primary" disabled={uploading}>
+                    </Button>
+
+                    <Button
+                      type="submit"
+                      className="btn-save"
+                      disabled={uploading}
+                    >
                       {uploading ? "Uploading..." : "Add Inventory"}
-                    </button>
+                    </Button>
                   </div>
                 </form>
               </div>
@@ -385,96 +663,262 @@ function ManageInventory() {
         </>
       )}
 
-      {/* Edit modal */}
+      {/* ===========================================
+          Edit Inventory Modal
+      =========================================== */}
+
       {editing && (
         <>
           <div className="modal-backdrop show" />
-          <div className="modal d-block" tabIndex="-1" role="dialog">
-            <div className="modal-dialog modal-dialog-centered" role="document">
+
+          <div
+            className="modal d-block manage-modal"
+            tabIndex="-1"
+            role="dialog"
+          >
+            <div
+              className="modal-dialog modal-xl modal-dialog-centered"
+              role="document"
+            >
               <div className="modal-content">
                 <form onSubmit={saveEdit}>
                   <div className="modal-header">
-                    <h5 className="modal-title">Edit Inventory Item</h5>
-                    <button type="button" className="btn-close" aria-label="Close" onClick={cancelEdit} />
+                    <div>
+                      <h4 className="modal-title">
+                        Edit Inventory Item
+                      </h4>
+
+                      <p className="modal-subtitle">
+                        Update inventory information, replace its image,
+                        or regenerate its QR code.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn-close"
+                      onClick={cancelEdit}
+                    />
                   </div>
+
                   <div className="modal-body">
-                    <div className="form-group mb-2">
-                      <label>Item Name</label>
-                      <input className="form-control" name="name" value={editForm.name} onChange={handleEditChange} required />
-                    </div>
-                    <div className="form-group mb-2">
-                      <label>Quantity</label>
-                      <input className="form-control" name="quantity" value={editForm.quantity} onChange={handleEditChange} type="number" />
-                    </div>
-                    <div className="form-group mb-2">
-                      <label>Description</label>
-                      <textarea className="form-control" rows={3} name="description" value={editForm.description} onChange={handleEditChange} />
-                    </div>
-                    <div className="form-group mb-2">
-                      <label>Image</label>
-                      <input type="file" accept="image/*" className="form-control" onChange={handleEditFileChange} />
-                      {editPreviewUrl && <img src={editPreviewUrl} alt="preview" style={{ marginTop: 8, width: 120, height: 80, objectFit: "cover" }} />}
-                    </div>
-                    <div className="form-group mb-2">
-                      <label>QR Code</label>
-                      <div style={{ padding: 8, background: "#fff", display: "inline-block" }}>
-                        {typeof QRCode !== "undefined" && QRCode ? (
-                          <QRCode value={editForm.name || qrValue || `inventory:${editing}`} size={128} />
-                        ) : (
-                          <span>QR unavailable</span>
-                        )}
-                      </div>
-                      <div style={{ marginTop: 8 }}>
-                        <Button size="sm" variant="secondary" onClick={regenerateQr}>
-                          Regenerate QR
-                        </Button>
-                      </div>
-                    </div>
+                    <Row>
+                      {/* ===========================================
+                          Item Information
+                      =========================================== */}
+
+                      <Col lg={6}>
+                        <div className="form-group">
+                          <label>Item Name</label>
+
+                          <input
+                            type="text"
+                            className="form-control"
+                            name="name"
+                            value={editForm.name}
+                            onChange={handleEditChange}
+                            required
+                          />
+                        </div>
+
+                        <div className="form-group mt-3">
+                          <label>Description</label>
+
+                          <textarea
+                            rows="5"
+                            className="form-control"
+                            name="description"
+                            value={editForm.description}
+                            onChange={handleEditChange}
+                          />
+                        </div>
+
+                        <div className="form-group mt-3">
+                          <label>Quantity</label>
+
+                          <input
+                            type="number"
+                            className="form-control"
+                            name="quantity"
+                            value={editForm.quantity}
+                            onChange={handleEditChange}
+                          />
+                        </div>
+                      </Col>
+
+                      {/* ===========================================
+                          Image Upload
+                      =========================================== */}
+
+                      <Col lg={3}>
+                        <div className="image-upload-card">
+                          <div className="image-preview">
+                            {editPreviewUrl ? (
+                              <img
+                                src={editPreviewUrl}
+                                alt="Preview"
+                              />
+                            ) : (
+                              <div className="upload-placeholder">
+                                <i className="nc-icon nc-image"></i>
+
+                                <span>No Image</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <label className="upload-btn">
+                            Change Image
+
+                            <input
+                              hidden
+                              type="file"
+                              accept="image/*"
+                              onChange={handleEditFileChange}
+                            />
+                          </label>
+                        </div>
+                      </Col>
+
+                      {/* ===========================================
+                          QR Code
+                      =========================================== */}
+
+                      <Col lg={3}>
+                        <div className="qr-card">
+                          <h6 className="qr-title">
+                            QR Code
+                          </h6>
+
+                          <div className="qr-box">
+                            <QRCode
+                              value={
+                                editForm.name ||
+                                qrValue ||
+                                `inventory:${editing}`
+                              }
+                              size={160}
+                            />
+                          </div>
+
+                          <Button
+                            className="btn-regenerate"
+                            onClick={regenerateQr}
+                          >
+                            Regenerate QR
+                          </Button>
+                        </div>
+                      </Col>
+                    </Row>
                   </div>
-                  <div className="modal-footer">
-                    <button type="button" className="btn btn-secondary" onClick={cancelEdit}>
-                      Cancel
-                    </button>
-                    <button type="submit" className="btn btn-primary">
-                      Save Changes
-                    </button>
+                              <div className="modal-footer">
+              <Button
+                variant="light"
+                className="btn-cancel"
+                onClick={cancelEdit}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                type="submit"
+                className="btn-save"
+              >
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </>
+      )}
+
+      {/* ===========================================
+          Delete Confirmation Modal
+      =========================================== */}
+
+      {confirmDelete && (
+        <>
+          <div className="modal-backdrop show" />
+
+          <div
+            className="modal d-block manage-modal"
+            tabIndex="-1"
+            role="dialog"
+          >
+            <div
+              className="modal-dialog modal-dialog-centered"
+              role="document"
+            >
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h4 className="modal-title">
+                    Delete Inventory Item
+                  </h4>
+
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={() => setConfirmDelete(null)}
+                  />
+                </div>
+
+                <div className="modal-body text-center">
+                  <div className="delete-icon">
+                    <i className="nc-icon nc-simple-remove"></i>
                   </div>
-                </form>
+
+                  <h5 className="mt-3">
+                    Are you sure?
+                  </h5>
+
+                  <p className="delete-message">
+                    You are about to permanently delete
+                    <strong> {confirmDelete.name} </strong>
+                    from the inventory.
+                  </p>
+
+                  <small className="text-muted">
+                    This action cannot be undone.
+                  </small>
+                </div>
+
+                <div className="modal-footer justify-content-center">
+                  <Button
+                    variant="light"
+                    className="btn-cancel"
+                    onClick={() => setConfirmDelete(null)}
+                  >
+                    Cancel
+                  </Button>
+
+                  <Button
+                    className="btn-delete-confirm"
+                    onClick={confirmDeleteNow}
+                  >
+                    Delete Item
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
         </>
       )}
 
-      {/* Delete confirmation modal */}
-      {confirmDelete && (
-        <>
-          <div className="modal-backdrop show" />
-          <div className="modal d-block" tabIndex="-1" role="dialog">
-            <div className="modal-dialog modal-dialog-centered" role="document">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">Confirm Delete</h5>
-                  <button type="button" className="btn-close" aria-label="Close" onClick={() => setConfirmDelete(null)} />
-                </div>
-                <div className="modal-body">
-                  Are you sure you want to delete <b>{confirmDelete.name}</b>?
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setConfirmDelete(null)}>
-                    Cancel
-                  </button>
-                  <button type="button" className="btn btn-danger" onClick={confirmDeleteNow}>
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-    </>
-  );
-}
+      <NotificationModal
+        show={notification.show}
+        onClose={() =>
+          setNotification((n) => ({
+            ...n,
+            show: false
+          }))
+        }
+        title="Notification"
+        message={notification.message}
+      />
+    </div>
+</>
+)};
 
 export default ManageInventory;

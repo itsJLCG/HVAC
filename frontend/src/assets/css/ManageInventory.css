@@ -1,0 +1,672 @@
+@import url("https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap");
+
+/* ==================================================
+   PAGE
+================================================== */
+
+.manage-inventory-page {
+  min-height: 100vh;
+  background: var(--cream);
+  padding-bottom: 40px;
+}
+
+/* ==================================================
+   HEADER
+================================================== */
+
+.manage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0 30px;
+}
+
+.manage-title {
+  margin: 0;
+  font-family: "Rajdhani", sans-serif;
+  font-size: 2.4rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--maroon-dark);
+}
+
+.manage-subtitle {
+  margin: 4px 0 0;
+  color: #8A7A6B;
+  font-size: .95rem;
+}
+
+/* ==================================================
+   ADD BUTTON
+================================================== */
+
+.btn-add-inventory {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 12px 22px;
+
+  background: var(--maroon);
+  border: none;
+  border-radius: 10px;
+
+  color: #fff;
+  font-weight: 600;
+
+  transition: .25s;
+}
+
+.btn-add-inventory:hover,
+.btn-add-inventory:focus {
+  background: var(--maroon-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(122,12,30,.18);
+}
+
+.btn-add-inventory i {
+  font-size: 18px;
+}
+
+/* ==================================================
+   SUMMARY CARDS
+================================================== */
+
+.summary-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(16,36,62,.08);
+  transition: .25s;
+}
+
+.summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px rgba(16,36,62,.14);
+}
+
+.summary-card .card-body {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 24px;
+}
+
+.summary-icon {
+  width: 64px;
+  height: 64px;
+
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #fff;
+  font-size: 24px;
+
+  flex-shrink: 0;
+}
+
+.summary-icon.maroon {
+  background: var(--maroon);
+}
+
+.summary-icon.gold {
+  background: var(--gold);
+  color: var(--maroon-dark);
+}
+
+.summary-icon.navy {
+  background: var(--navy);
+}
+
+.summary-card span {
+  display: block;
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #8A7A6B;
+}
+
+.summary-card h3 {
+  margin: 2px 0 0;
+  font-family: "Rajdhani", sans-serif;
+  font-size: 2rem;
+  color: var(--maroon-dark);
+}
+
+/* ==================================================
+   ALERT
+================================================== */
+
+.manage-alert {
+  border: none;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+}
+
+.manage-alert.alert-success {
+  background: #EAF7EF;
+  color: #2E7D32;
+}
+
+.manage-alert.alert-danger {
+  background: #F8E6E8;
+  color: var(--maroon);
+}
+
+/* ==================================================
+   SEARCH CARD
+================================================== */
+
+.search-card {
+  margin-bottom: 25px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(16,36,62,.08);
+}
+
+.search-card .card-body {
+  padding: 18px 22px;
+}
+
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-wrapper i {
+  color: var(--maroon);
+  font-size: 18px;
+}
+
+.search-wrapper input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: .95rem;
+  color: var(--ink);
+}
+
+.search-wrapper input::placeholder {
+  color: #8A7A6B;
+}
+
+/* ==================================================
+   INVENTORY TABLE
+================================================== */
+
+.inventory-table-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(16,36,62,.08);
+}
+
+.inventory-table-card .card-header {
+  background: var(--maroon);
+  border-bottom: 4px solid var(--gold);
+  padding: 22px 26px;
+}
+
+.inventory-table-card .card-title {
+  color: #fff;
+  margin: 0;
+}
+
+.inventory-table-card .card-category {
+  color: rgba(255,255,255,.75);
+  margin-top: 3px;
+}
+
+.inventory-table {
+  margin: 0;
+}
+
+.inventory-table thead {
+  background: #FBF7F1;
+}
+
+.inventory-table thead th {
+  padding: 18px;
+  border: none;
+  color: var(--maroon-dark);
+  font-family: "Rajdhani", sans-serif;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.inventory-table tbody td {
+  padding: 18px;
+  vertical-align: middle;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.inventory-table tbody tr {
+  transition: .2s;
+}
+
+.inventory-table tbody tr:hover {
+  background: #FCFAF7;
+}
+
+/* ==================================================
+   TABLE IMAGE
+================================================== */
+
+.table-image {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.table-image.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F6F2EB;
+  color: #A39486;
+  font-size: 22px;
+}
+
+/* ==================================================
+   STATUS BADGES
+================================================== */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 60px;
+  padding: 8px 14px;
+
+  border-radius: 40px;
+
+  font-size: .82rem;
+  font-weight: 600;
+}
+
+.status-badge.available {
+  background: #EAF7EF;
+  color: #2E7D32;
+  border: 1px solid #C5E5CF;
+}
+
+.status-badge.unavailable {
+  background: #F8E6E8;
+  color: var(--maroon);
+  border: 1px solid #E4BEC5;
+}
+
+/* ==================================================
+   ACTION BUTTONS
+================================================== */
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.action-btn {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 10px;
+
+  transition: all .25s ease;
+  box-shadow: 0 4px 10px rgba(0,0,0,.08);
+}
+
+.action-btn i {
+  font-size: 15px;
+}
+
+.action-btn:hover {
+  transform: translateY(-3px);
+}
+
+.action-btn.edit {
+  background: var(--navy);
+  color: #fff;
+}
+
+.action-btn.edit:hover {
+  background: #18375D;
+  box-shadow: 0 10px 20px rgba(16,36,62,.25);
+}
+
+.action-btn.print {
+  background: var(--gold);
+  color: var(--maroon-dark);
+}
+
+.action-btn.print:hover {
+  background: #D89C0A;
+  box-shadow: 0 10px 20px rgba(240,180,41,.30);
+}
+
+.action-btn.delete {
+  background: var(--maroon);
+  color: #fff;
+}
+
+.action-btn.delete:hover {
+  background: var(--maroon-dark);
+  box-shadow: 0 10px 20px rgba(122,12,30,.28);
+}
+
+/* ==================================================
+   MODAL
+================================================== */
+
+.manage-modal .modal-content {
+  border: none;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(16,36,62,.18);
+}
+
+.manage-modal .modal-header {
+  background: var(--maroon);
+  border-bottom: 4px solid var(--gold);
+  padding: 22px 28px;
+}
+
+.manage-modal .modal-title {
+  margin: 0;
+  font-family: "Rajdhani", sans-serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.modal-subtitle {
+  margin: 4px 0 0;
+  color: rgba(255,255,255,.8);
+  font-size: .9rem;
+}
+
+.manage-modal .modal-body {
+  padding: 28px;
+  background: #fff;
+}
+
+.manage-modal .modal-footer {
+  padding: 18px 28px;
+  border-top: 1px solid var(--line);
+  background: #FAFAFA;
+}
+
+/* ==================================================
+   FORM
+================================================== */
+
+.manage-modal label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: .82rem;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--maroon-dark);
+}
+
+.manage-modal .form-control {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  min-height: 46px;
+  box-shadow: none;
+  transition: .2s;
+}
+
+.manage-modal textarea.form-control {
+  min-height: 130px;
+  resize: vertical;
+}
+
+.manage-modal .form-control:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 .15rem rgba(240,180,41,.2);
+}
+
+/* ==================================================
+   IMAGE UPLOAD
+================================================== */
+
+.image-upload-card {
+  border: 2px dashed var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  text-align: center;
+  background: #FCFBF8;
+}
+
+.image-preview {
+  width: 100%;
+  height: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--line);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 16px;
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #A29486;
+}
+
+.upload-placeholder i {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+.upload-btn {
+  display: inline-block;
+  width: 100%;
+  padding: 11px;
+  border-radius: 10px;
+  background: var(--navy);
+  color: #fff;
+  cursor: pointer;
+  transition: .2s;
+  font-weight: 600;
+}
+
+.upload-btn:hover {
+  background: #18375D;
+}
+
+/* ==================================================
+   QR CARD
+================================================== */
+
+.qr-card {
+  height: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px;
+  text-align: center;
+  background: #FCFBF8;
+}
+
+.qr-title {
+  margin-bottom: 18px;
+  font-family: "Rajdhani", sans-serif;
+  font-size: 1.2rem;
+  color: var(--maroon-dark);
+}
+
+.qr-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+
+.btn-regenerate {
+  width: 100%;
+  margin-top: 18px;
+  background: var(--gold);
+  color: var(--maroon-dark);
+  border: none;
+  font-weight: 600;
+}
+
+.btn-regenerate:hover {
+  background: #D89C0A;
+}
+
+/* ==================================================
+   FOOTER BUTTONS
+================================================== */
+
+.btn-save {
+  background: var(--maroon);
+  border: none;
+  color: #fff;
+  padding: 10px 22px;
+  font-weight: 600;
+}
+
+.btn-save:hover {
+  background: var(--maroon-dark);
+}
+
+.btn-cancel {
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.btn-delete-confirm {
+  background: var(--maroon);
+  border: none;
+  color: #fff;
+  padding: 10px 22px;
+}
+
+.btn-delete-confirm:hover {
+  background: var(--maroon-dark);
+}
+
+/* ==================================================
+   DELETE MODAL
+================================================== */
+
+.delete-icon {
+  width: 90px;
+  height: 90px;
+  margin: 0 auto;
+
+  border-radius: 50%;
+  background: #F8E6E8;
+  color: var(--maroon);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-icon i {
+  font-size: 38px;
+}
+
+.delete-message {
+  margin: 18px 0 8px;
+  color: #6F6256;
+  line-height: 1.7;
+}
+
+/* ==================================================
+   RESPONSIVE
+================================================== */
+
+@media (max-width: 991px) {
+
+  .manage-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+
+  .summary-card {
+    margin-bottom: 20px;
+  }
+
+  .action-buttons {
+    justify-content: flex-start;
+  }
+
+  .image-preview {
+    height: 180px;
+  }
+
+}
+
+@media (max-width: 576px) {
+
+  .manage-title {
+    font-size: 2rem;
+  }
+
+  .inventory-table thead {
+    display: none;
+  }
+
+  .inventory-table td {
+    display: block;
+    width: 100%;
+    border: none;
+  }
+
+  .inventory-table tr {
+    display: block;
+    margin-bottom: 18px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .manage-modal .modal-body {
+    padding: 20px;
+  }
+
+  .image-preview {
+    height: 160px;
+  }
+
+}
