@@ -1,82 +1,58 @@
-/*!
-
-=========================================================
-* Light Bootstrap Dashboard React - v2.0.1
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/light-bootstrap-dashboard-react
-* Copyright 2022 Creative Tim (https://www.creative-tim.com)
-* Licensed under MIT (https://github.com/creativetimofficial/light-bootstrap-dashboard-react/blob/master/LICENSE.md)
-
-* Coded by Creative Tim
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-*/
-import React, { Component } from "react";
+import React from "react";
 import { useLocation, NavLink } from "react-router-dom";
 
-import { Nav } from "react-bootstrap";
+import "../../assets/css/Sidebar.css";
 
-// Sidebar logo now loaded from backend public images (see backend/public/images/HVAC_LOGO.png)
-
-function Sidebar({ color, image, routes }) {
+function Sidebar({ routes }) {
   const location = useLocation();
-  const activeRoute = (routeName) => {
-    return location.pathname.indexOf(routeName) > -1 ? "active" : "";
+
+  const isActive = (route) => {
+    return location.pathname.indexOf(route) > -1;
   };
+
   return (
-    <div className="sidebar" data-image={image} data-color={color}>
-      <div
-        className="sidebar-background"
-        style={{
-          backgroundImage: "url(" + image + ")"
-        }}
-      />
-      <div className="sidebar-wrapper">
-        <div className="logo d-flex align-items-center justify-content-start">
-          <a
-            href="/admin/dashboard"
-            className="simple-text logo-mini mx-1"
-          >
-            <div className="logo-img">
-              <img src="/images/HVAC_LOGO.png" alt="logo" />
-            </div>
-          </a>
-          <a className="simple-text" href="/admin/dashboard">
-            Borrowing System
-          </a>
-        </div>
-        <Nav>
-          {routes.map((prop, key) => {
-            if (!prop.redirect)
-              return (
-                <li
-                  className={
-                    prop.upgrade
-                      ? "active active-pro"
-                      : activeRoute(prop.layout + prop.path)
-                  }
-                  key={key}
-                >
-                  <NavLink
-                    to={prop.layout + prop.path}
-                    className="nav-link"
-                    activeClassName="active"
-                  >
-                    <i className={prop.icon} />
-                    <p>{prop.name}</p>
-                  </NavLink>
-                </li>
-              );
-            return null;
-          })}
-          {/* Landing link removed — project uses admin only */}
-        </Nav>
+    <aside className="tupt-sidebar">
+      {/* Logo */}
+      <div className="tupt-logo">
+        <a href="/admin/dashboard" className="tupt-logo-img">
+          <img
+            src="/images/HVAC_LOGO.png"
+            alt="HVAC Borrowing System Logo"
+          />
+        </a>
+
+        <a href="/admin/dashboard" className="tupt-logo-text">
+          Borrowing
+          <br />
+          System
+        </a>
       </div>
-    </div>
+
+      {/* Navigation */}
+      <div className="tupt-sidebar-content">
+        <ul className="tupt-nav">
+          {routes.map((route, key) => {
+            if (route.redirect) return null;
+
+            return (
+              <li key={key} className="tupt-nav-item">
+                <NavLink
+                  to={route.layout + route.path}
+                  className={`tupt-nav-link ${
+                    isActive(route.layout + route.path)
+                      ? "tupt-active"
+                      : ""
+                  }`}
+                >
+                  <i className={route.icon}></i>
+                  <p>{route.name}</p>
+                </NavLink>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </aside>
   );
 }
 

@@ -14,6 +14,7 @@
     "html5-qrcode": "^2.3.8",
     "hvac-inventory-borrowing-system": "file:..",
     "hvac-inventory-borrowing-system-backend": "file:../backend",
+    "npm": "^11.19.0",
     "react": ">=16.8.0",
     "react-bootstrap": "2.4.0",
     "react-chartist": "0.14.4",
@@ -25,7 +26,8 @@
     "react-scripts": "5.0.1",
     "react-toastify": "^11.1.0",
     "reactstrap": "8.8.1",
-    "sass": "1.53.0"
+    "sass": "1.53.0",
+    "start": "^5.1.0"
   },
   "optionalDependencies": {
     "jquery": "3.5.1",

@@ -2,11 +2,8 @@ import React from "react";
 import ChartistGraph from "react-chartist";
 // react-bootstrap components
 import {
-  Badge,
   Button,
   Card,
-  Navbar,
-  Nav,
   Table,
   Container,
   Row,
@@ -15,6 +12,7 @@ import {
   OverlayTrigger,
   Tooltip,
 } from "react-bootstrap";
+import "../assets/css/Dashboard.css";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "";
 
@@ -84,7 +82,8 @@ function Dashboard() {
   }, []);
 
   return (
-    <>
+    <div className="tupt-dashboard">
+      <div className="tupt-ribbon"></div>
       <Container fluid>
         <Row>
           <Col lg="3" sm="6">
@@ -92,8 +91,8 @@ function Dashboard() {
               <Card.Body>
                 <Row>
                   <Col xs="5">
-                    <div className="icon-big text-center icon-warning">
-                      <i className="nc-icon nc-chart text-warning"></i>
+                    <div className="tupt-medallion m-maroon">
+                      <i className="nc-icon nc-chart"></i>
                     </div>
                   </Col>
                   <Col xs="7">
@@ -118,8 +117,8 @@ function Dashboard() {
               <Card.Body>
                 <Row>
                   <Col xs="5">
-                    <div className="icon-big text-center icon-warning">
-                      <i className="nc-icon nc-light-3 text-success"></i>
+                    <div className="tupt-medallion m-navy">
+                      <i className="nc-icon nc-light-3"></i>
                     </div>
                   </Col>
                   <Col xs="7">
@@ -144,8 +143,8 @@ function Dashboard() {
               <Card.Body>
                 <Row>
                   <Col xs="5">
-                    <div className="icon-big text-center icon-warning">
-                      <i className="nc-icon nc-vector text-danger"></i>
+                    <div className="tupt-medallion m-gold">
+                      <i className="nc-icon nc-vector"></i>
                     </div>
                   </Col>
                   <Col xs="7">
@@ -170,8 +169,8 @@ function Dashboard() {
               <Card.Body>
                 <Row>
                   <Col xs="5">
-                    <div className="icon-big text-center icon-warning">
-                      <i className="nc-icon nc-favourite-28 text-primary"></i>
+                    <div className="tupt-medallion m-ink">
+                      <i className="nc-icon nc-favourite-28"></i>
                     </div>
                   </Col>
                   <Col xs="7">
@@ -236,9 +235,9 @@ function Dashboard() {
               </Card.Body>
               <Card.Footer>
                 <div className="legend">
-                  <i className="fas fa-circle text-info"></i>
-                  Borrowed <i className="fas fa-circle text-danger"></i>
-                  Returned <i className="fas fa-circle text-warning"></i>
+                  <i className="fas fa-circle tupt-dot d-maroon"></i>
+                  Borrowed <i className="fas fa-circle tupt-dot d-gold"></i>
+                  Returned <i className="fas fa-circle tupt-dot d-navy"></i>
                   Overdue
                 </div>
                 <hr></hr>
@@ -269,9 +268,9 @@ function Dashboard() {
                   />
                 </div>
                 <div className="legend">
-                  <i className="fas fa-circle text-info"></i>
-                  Available <i className="fas fa-circle text-danger"></i>
-                  Borrowed <i className="fas fa-circle text-warning"></i>
+                  <i className="fas fa-circle tupt-dot d-maroon"></i>
+                  Available <i className="fas fa-circle tupt-dot d-gold"></i>
+                  Borrowed <i className="fas fa-circle tupt-dot d-navy"></i>
                   Out of Stock
                 </div>
                 <hr></hr>
@@ -283,406 +282,8 @@ function Dashboard() {
             </Card>
           </Col>
         </Row>
-        <Row>
-          <Col md="6">
-            <Card>
-              <Card.Header>
-                <Card.Title as="h4">Monthly Additions</Card.Title>
-                <p className="card-category">Items added to inventory per month</p>
-              </Card.Header>
-              <Card.Body>
-                <div className="ct-chart" id="chartActivity">
-                  <ChartistGraph
-                    data={{
-                      labels: [
-                        "Jan",
-                        "Feb",
-                        "Mar",
-                        "Apr",
-                        "Mai",
-                        "Jun",
-                        "Jul",
-                        "Aug",
-                        "Sep",
-                        "Oct",
-                        "Nov",
-                        "Dec",
-                      ],
-                      series: [
-                        [
-                          542,
-                          443,
-                          320,
-                          780,
-                          553,
-                          453,
-                          326,
-                          434,
-                          568,
-                          610,
-                          756,
-                          895,
-                        ],
-                        [
-                          412,
-                          243,
-                          280,
-                          580,
-                          453,
-                          353,
-                          300,
-                          364,
-                          368,
-                          410,
-                          636,
-                          695,
-                        ],
-                      ],
-                    }}
-                    type="Bar"
-                    options={{
-                      seriesBarDistance: 10,
-                      axisX: {
-                        showGrid: false,
-                      },
-                      height: "245px",
-                    }}
-                    responsiveOptions={[
-                      [
-                        "screen and (max-width: 640px)",
-                        {
-                          seriesBarDistance: 5,
-                          axisX: {
-                            labelInterpolationFnc: function (value) {
-                              return value[0];
-                            },
-                          },
-                        },
-                      ],
-                    ]}
-                  />
-                </div>
-              </Card.Body>
-              <Card.Footer>
-                <div className="legend">
-                  <i className="fas fa-circle text-info"></i>
-                  HVAC Units <i className="fas fa-circle text-danger"></i>
-                  Tools & Equipment
-                </div>
-                <hr></hr>
-                <div className="stats">
-                  <i className="fas fa-check"></i>
-                  Live inventory data
-                </div>
-              </Card.Footer>
-            </Card>
-          </Col>
-          <Col md="6">
-            <Card className="card-tasks">
-              <Card.Header>
-                <Card.Title as="h4">Recent Activity</Card.Title>
-                <p className="card-category">Latest inventory updates</p>
-              </Card.Header>
-              <Card.Body>
-                <div className="table-full-width">
-                  <Table>
-                    <tbody>
-                      <tr>
-                        <td>
-                          <Form.Check className="mb-1 pl-0">
-                            <Form.Check.Label>
-                              <Form.Check.Input
-                                defaultValue=""
-                                type="checkbox"
-                              ></Form.Check.Input>
-                              <span className="form-check-sign"></span>
-                            </Form.Check.Label>
-                          </Form.Check>
-                        </td>
-                        <td>
-                          A new Split-Type Aircon unit was added to the
-                          inventory
-                        </td>
-                        <td className="td-actions text-right">
-                          <OverlayTrigger
-                            overlay={
-                              <Tooltip id="tooltip-488980961">
-                                Edit Task..
-                              </Tooltip>
-                            }
-                          >
-                            <Button
-                              className="btn-simple btn-link p-1"
-                              type="button"
-                              variant="info"
-                            >
-                              <i className="fas fa-edit"></i>
-                            </Button>
-                          </OverlayTrigger>
-                          <OverlayTrigger
-                            overlay={
-                              <Tooltip id="tooltip-506045838">Remove..</Tooltip>
-                            }
-                          >
-                            <Button
-                              className="btn-simple btn-link p-1"
-                              type="button"
-                              variant="danger"
-                            >
-                              <i className="fas fa-times"></i>
-                            </Button>
-                          </OverlayTrigger>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <Form.Check className="mb-1 pl-0">
-                            <Form.Check.Label>
-                              <Form.Check.Input
-                                defaultChecked
-                                defaultValue=""
-                                type="checkbox"
-                              ></Form.Check.Input>
-                              <span className="form-check-sign"></span>
-                            </Form.Check.Label>
-                          </Form.Check>
-                        </td>
-                        <td>
-                          Student borrowed a Diagnostic Manifold Gauge for
-                          inspection
-                        </td>
-                        <td className="td-actions text-right">
-                          <OverlayTrigger
-                            overlay={
-                              <Tooltip id="tooltip-537440761">
-                                Edit Task..
-                              </Tooltip>
-                            }
-                          >
-                            <Button
-                              className="btn-simple btn-link p-1"
-                              type="button"
-                              variant="info"
-                            >
-                              <i className="fas fa-edit"></i>
-                            </Button>
-                          </OverlayTrigger>
-                          <OverlayTrigger
-                            overlay={
-                              <Tooltip id="tooltip-21130535">Remove..</Tooltip>
-                            }
-                          >
-                            <Button
-                              className="btn-simple btn-link p-1"
-                              type="button"
-                              variant="danger"
-                            >
-                              <i className="fas fa-times"></i>
-                            </Button>
-                          </OverlayTrigger>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <Form.Check className="mb-1 pl-0">
-                            <Form.Check.Label>
-                              <Form.Check.Input
-                                defaultChecked
-                                defaultValue=""
-                                type="checkbox"
-                              ></Form.Check.Input>
-                              <span className="form-check-sign"></span>
-                            </Form.Check.Label>
-                          </Form.Check>
-                        </td>
-                        <td>
-                          Inventory stock level for Copper Tubing was updated
-                          to the latest count
-                        </td>
-                        <td className="td-actions text-right">
-                          <OverlayTrigger
-                            overlay={
-                              <Tooltip id="tooltip-577232198">
-                                Edit Task..
-                              </Tooltip>
-                            }
-                          >
-                            <Button
-                              className="btn-simple btn-link p-1"
-                              type="button"
-                              variant="info"
-                            >
-                              <i className="fas fa-edit"></i>
-                            </Button>
-                          </OverlayTrigger>
-                          <OverlayTrigger
-                            overlay={
-                              <Tooltip id="tooltip-773861645">Remove..</Tooltip>
-                            }
-                          >
-                            <Button
-                              className="btn-simple btn-link p-1"
-                              type="button"
-                              variant="danger"
-                            >
-                              <i className="fas fa-times"></i>
-                            </Button>
-                          </OverlayTrigger>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <Form.Check className="mb-1 pl-0">
-                            <Form.Check.Label>
-                              <Form.Check.Input
-                                defaultChecked
-                                type="checkbox"
-                              ></Form.Check.Input>
-                              <span className="form-check-sign"></span>
-                            </Form.Check.Label>
-                          </Form.Check>
-                        </td>
-                        <td>
-                          QR code was regenerated for the Ductless Mini-Split
-                          unit
-                        </td>
-                        <td className="td-actions text-right">
-                          <OverlayTrigger
-                            overlay={
-                              <Tooltip id="tooltip-422471719">
-                                Edit Task..
-                              </Tooltip>
-                            }
-                          >
-                            <Button
-                              className="btn-simple btn-link p-1"
-                              type="button"
-                              variant="info"
-                            >
-                              <i className="fas fa-edit"></i>
-                            </Button>
-                          </OverlayTrigger>
-                          <OverlayTrigger
-                            overlay={
-                              <Tooltip id="tooltip-829164576">Remove..</Tooltip>
-                            }
-                          >
-                            <Button
-                              className="btn-simple btn-link p-1"
-                              type="button"
-                              variant="danger"
-                            >
-                              <i className="fas fa-times"></i>
-                            </Button>
-                          </OverlayTrigger>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <Form.Check className="mb-1 pl-0">
-                            <Form.Check.Label>
-                              <Form.Check.Input
-                                defaultValue=""
-                                type="checkbox"
-                              ></Form.Check.Input>
-                              <span className="form-check-sign"></span>
-                            </Form.Check.Label>
-                          </Form.Check>
-                        </td>
-                        <td>                          A Refrigerant Recovery Machine was removed from the
-                          inventory</td>
-                        <td className="td-actions text-right">
-                          <OverlayTrigger
-                            overlay={
-                              <Tooltip id="tooltip-160575228">
-                                Edit Task..
-                              </Tooltip>
-                            }
-                          >
-                            <Button
-                              className="btn-simple btn-link p-1"
-                              type="button"
-                              variant="info"
-                            >
-                              <i className="fas fa-edit"></i>
-                            </Button>
-                          </OverlayTrigger>
-                          <OverlayTrigger
-                            overlay={
-                              <Tooltip id="tooltip-922981635">Remove..</Tooltip>
-                            }
-                          >
-                            <Button
-                              className="btn-simple btn-link p-1"
-                              type="button"
-                              variant="danger"
-                            >
-                              <i className="fas fa-times"></i>
-                            </Button>
-                          </OverlayTrigger>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <Form.Check className="mb-1 pl-0">
-                            <Form.Check.Label>
-                              <Form.Check.Input
-                                defaultValue=""
-                                disabled
-                                type="checkbox"
-                              ></Form.Check.Input>
-                              <span className="form-check-sign"></span>
-                            </Form.Check.Label>
-                          </Form.Check>
-                        </td>
-                        <td>                          New batch of students imported from the master list</td>
-                        <td className="td-actions text-right">
-                          <OverlayTrigger
-                            overlay={
-                              <Tooltip id="tooltip-938342127">
-                                Edit Task..
-                              </Tooltip>
-                            }
-                          >
-                            <Button
-                              className="btn-simple btn-link p-1"
-                              type="button"
-                              variant="info"
-                            >
-                              <i className="fas fa-edit"></i>
-                            </Button>
-                          </OverlayTrigger>
-                          <OverlayTrigger
-                            overlay={
-                              <Tooltip id="tooltip-119603706">Remove..</Tooltip>
-                            }
-                          >
-                            <Button
-                              className="btn-simple btn-link p-1"
-                              type="button"
-                              variant="danger"
-                            >
-                              <i className="fas fa-times"></i>
-                            </Button>
-                          </OverlayTrigger>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </Table>
-                </div>
-              </Card.Body>
-              <Card.Footer>
-                <hr></hr>
-                <div className="stats">
-                  <i className="now-ui-icons loader_refresh spin"></i>
-                  Updated 3 minutes ago
-                </div>
-              </Card.Footer>
-            </Card>
-          </Col>
-        </Row>
       </Container>
-    </>
+    </div>
   );
 }
 
