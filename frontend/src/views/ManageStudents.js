@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Card, Container, Row, Col, Table, Button, Alert } from "react-bootstrap";
+import {
+  Card,
+  Container,
+  Row,
+  Col,
+  Table,
+  Button,
+  Alert,
+  OverlayTrigger,
+  Tooltip
+} from "react-bootstrap";
+
 import NotificationModal from "components/NotificationModal/NotificationModal";
+import "../assets/css/ManageInventory.css";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "";
 
@@ -223,98 +235,253 @@ function ManageStudents() {
   };
 
   return (
-    <>
+  <>
+    <div className="tupt-dashboard manage-inventory-page">
+      <div className="tupt-ribbon"></div>
+
       <Container fluid>
         {alert.show && (
-          <Row>
-            <Col md="12">
-              <Alert variant={alert.variant}>{alert.message}</Alert>
-            </Col>
-          </Row>
+          <Alert
+            className={`manage-alert ${
+              alert.variant === "danger"
+                ? "alert-danger"
+                : "alert-success"
+            }`}
+          >
+            {alert.message}
+          </Alert>
         )}
-        <Row>
-          <Col md="12">
-            <Card className="strpied-tabled-with-hover">
-              <Card.Header className="d-flex align-items-center justify-content-between flex-wrap">
+
+        {/* ===========================================
+            Header
+        =========================================== */}
+
+        <div className="manage-header">
+          <div>
+            <h2 className="manage-title">
+              Manage Students
+            </h2>
+
+            <p className="manage-subtitle">
+              Add, import, edit, and manage student records.
+            </p>
+          </div>
+
+          <div className="d-flex" style={{ gap: 10 }}>
+            <Button
+              className="btn-add-inventory"
+              onClick={openImport}
+            >
+              <i className="nc-icon nc-cloud-upload-94"></i>
+              Import
+            </Button>
+
+            <Button
+              className="btn-add-inventory"
+              onClick={openAdd}
+            >
+              <i className="nc-icon nc-simple-add"></i>
+              Add Student
+            </Button>
+          </div>
+        </div>
+
+        {/* ===========================================
+            Summary Cards
+        =========================================== */}
+
+        <Row className="mb-4">
+
+          <Col lg="4" md="6">
+            <Card className="summary-card">
+              <Card.Body>
+
+                <div className="summary-icon maroon">
+                  <i className="nc-icon nc-single-02"></i>
+                </div>
+
                 <div>
-                  <Card.Title as="h4">Manage Students</Card.Title>
-                  <p className="card-category">Add, import, update, and remove students</p>
+                  <span>Total Students</span>
+                  <h3>{students.length}</h3>
                 </div>
-                <div className="d-flex" style={{ gap: 8 }}>
-                  <Button variant="secondary" className="btn-fill" onClick={openImport}>
-                    Import CSV / XLSX
-                  </Button>
-                  <Button variant="primary" className="btn-fill" onClick={openAdd}>
-                    + Add Student
-                  </Button>
-                </div>
-              </Card.Header>
-              <Card.Body className="table-full-width table-responsive px-0">
-                <div className="px-3 mb-3" style={{ maxWidth: 320 }}>
-                  <input
-                    className="form-control"
-                    placeholder="Search by TUPT ID or name..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-                <Table className="table-hover table-striped">
-                  <thead>
-                    <tr>
-                      <th
-                        className="border-0"
-                        role="button"
-                        onClick={() => toggleSort("tupt_id")}
-                        style={{ cursor: "pointer", userSelect: "none" }}
-                        title="Click to sort A-Z / Z-A"
-                      >
-                        Student No.
-                        <SortIndicator columnKey="tupt_id" />
-                      </th>
-                      <th
-                        className="border-0"
-                        role="button"
-                        onClick={() => toggleSort("full_name")}
-                        style={{ cursor: "pointer", userSelect: "none" }}
-                        title="Click to sort A-Z / Z-A"
-                      >
-                        Student Name
-                        <SortIndicator columnKey="full_name" />
-                      </th>
-                      <th className="border-0">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedStudents.length === 0 ? (
-                      <tr>
-                        <td colSpan={3} className="text-center">
-                          No students found. Click "+ Add Student" or import a file to get started.
-                        </td>
-                      </tr>
-                    ) : (
-                      sortedStudents.map((s) => (
-                        <tr key={s.id}>
-                          <td>{s.tupt_id}</td>
-                          <td>{s.full_name}</td>
-                          <td>
-                            <Button size="sm" variant="info" onClick={() => startEdit(s)}>
-                              Edit
-                            </Button>{" "}
-                            <Button size="sm" variant="danger" onClick={() => handleDelete(s)}>
-                              Delete
-                            </Button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </Table>
+
               </Card.Body>
             </Card>
           </Col>
-        </Row>
-      </Container>
 
+          <Col lg="4" md="6">
+            <Card className="summary-card">
+              <Card.Body>
+
+                <div className="summary-icon gold">
+                  <i className="nc-icon nc-zoom-split"></i>
+                </div>
+
+                <div>
+                  <span>Filtered</span>
+                  <h3>{filteredStudents.length}</h3>
+                </div>
+
+              </Card.Body>
+            </Card>
+          </Col>
+
+          <Col lg="4" md="6">
+            <Card className="summary-card">
+              <Card.Body>
+
+                <div className="summary-icon navy">
+                  <i className="nc-icon nc-check-2"></i>
+                </div>
+
+                <div>
+                  <span>Showing</span>
+                  <h3>{sortedStudents.length}</h3>
+                </div>
+
+              </Card.Body>
+            </Card>
+          </Col>
+
+        </Row>
+
+        {/* ===========================================
+            Search
+        =========================================== */}
+
+        <Card className="search-card mb-4">
+          <Card.Body>
+
+            <div className="search-wrapper">
+
+              <i className="nc-icon nc-zoom-split"></i>
+
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search student..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+
+            </div>
+
+          </Card.Body>
+        </Card>
+
+        {/* ===========================================
+            Students Table
+        =========================================== */}
+
+        <Card className="inventory-table-card">
+          <Card.Header>
+
+            <div>
+              <Card.Title as="h4">
+                Student Records
+              </Card.Title>
+
+              <p className="card-category">
+                View, edit, and remove registered students.
+              </p>
+            </div>
+
+          </Card.Header>
+
+         <Card.Body className="p-0">
+          <div className="table-responsive">
+            {sortedStudents.length === 0 ? (
+              <Table className="inventory-table">
+                <tbody>
+                  <tr>
+                    <td
+                      colSpan="3"
+                      className="text-center py-5"
+                    >
+                      No students found.
+                    </td>
+                  </tr>
+                </tbody>
+              </Table>
+            ) : (
+              <Table className="inventory-table">
+                <thead>
+                  <tr>
+                    <th
+                      role="button"
+                      onClick={() => toggleSort("tupt_id")}
+                      style={{ cursor: "pointer" }}
+                    >
+                      Student No.
+                      <SortIndicator columnKey="tupt_id" />
+                    </th>
+
+                    <th
+                      role="button"
+                      onClick={() => toggleSort("full_name")}
+                      style={{ cursor: "pointer" }}
+                    >
+                      Student Name
+                      <SortIndicator columnKey="full_name" />
+                    </th>
+
+                    <th className="text-center">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {sortedStudents.map(student => (
+                    <tr key={student.id}>
+                      <td>
+                        <strong>{student.tupt_id}</strong>
+                      </td>
+
+                      <td>
+                        {student.full_name}
+                      </td>
+
+                      <td className="text-center">
+                        <div className="action-buttons">
+
+                          <OverlayTrigger
+                            placement="top"
+                            overlay={<Tooltip>Edit Student</Tooltip>}
+                          >
+                            <Button
+                              size="sm"
+                              className="action-btn edit"
+                              onClick={() => startEdit(student)}
+                            >
+                              <i className="fas fa-pen"></i>
+                            </Button>
+                          </OverlayTrigger>
+
+                          <OverlayTrigger
+                            placement="top"
+                            overlay={<Tooltip>Delete Student</Tooltip>}
+                          >
+                            <Button
+                              size="sm"
+                              className="action-btn delete"
+                              onClick={() => handleDelete(student)}
+                            >
+                              <i className="fas fa-trash-alt"></i>
+                            </Button>
+                          </OverlayTrigger>
+
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            )}
+          </div>
+        </Card.Body>
+            </Card>
+      </Container>
       <NotificationModal
         show={notification.show}
         onClose={() => setNotification((n) => ({ ...n, show: false }))}
@@ -509,7 +676,8 @@ function ManageStudents() {
           </div>
         </>
       )}
-    </>
+    </div>
+  </>
   );
 }
 
